@@ -1,0 +1,87 @@
+{% extends "students.html" %}
+
+{% block title %}
+  List Students
+{% endblock %}
+
+{% block content %}
+  <!-- Filters -->
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-md-3">
+      <label for="nameFilter" class="form-label">Name</label>
+      <input 
+        type="text" 
+        id="nameFilter" 
+        name="name" 
+        value="{{ filters.name|default:'' }}" 
+        class="form-control" 
+        placeholder="Enter first or last name" />
+    </div>
+
+    <div class="col-md-3">
+      <label for="classFilter" class="form-label">Class</label>
+      <select id="classFilter" name="class" class="form-control">
+        <option value="">All Classes</option>
+        {% for c in class_list %}
+          <option value="{{ c.class_name }}" {% if filters.class == c.class_name %}selected{% endif %}>
+            {{ c.class_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label for="sectionFilter" class="form-label">Section</label>
+      <select id="sectionFilter" name="section" class="form-control">
+        <option value="">All Sections</option>
+        {% for k in section_list %}
+          <option value="{{ k.id }}" {% if filters.section == k.id %}selected{% endif %}>
+            {{ k.std_section }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Filter</button>
+    </div>
+  </form>
+
+  <!-- Student List Table -->
+  <table class="table table-bordered bg-white">
+    <thead class="table-info">
+      <tr>
+        <th>Roll Number</th>  <!-- Added Roll Number Header -->
+        <th>Name</th>
+        <th>Class</th>
+        <th>Section</th>
+        <th>Guardian Name</th>
+        <th>Guardian Contact 1</th>
+        <th>Guardian Contact 2</th>
+        <th>Address</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if students %}
+        {% for stud in students %}
+          <tr>
+            <td>{{ stud.std_roll }}</td>  <!-- Added Roll Number Cell -->
+            <td>
+              <a href="{% url 'edit_students' stud.id %}">
+                {{ stud.std_fname }} {{ stud.std_lname }}
+              </a>
+            </td>
+            <td>{{ stud.std_class.class_name }}</td>
+            <td>{% if stud.std_section %}{{ stud.std_section.std_section }}{% else %}N/A{% endif %}</td>
+            <td>{{ stud.guardian_name|default:"N/A" }}</td>
+            <td>{{ stud.guardian_contact1|default:"N/A" }}</td>
+            <td>{{ stud.guardian_contact2|default:"N/A" }}</td>
+            <td>{{ stud.address|default:"N/A" }}</td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="8" class="text-center">No students found.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+{% endblock %}

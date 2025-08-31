@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #111;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      position: relative;
+    }
+    .glow-lines {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: radial-gradient(circle, rgba(0,255,255,0.8) 0%, rgba(0,255,255,0.2) 70%, transparent 100%);
+      border-radius: 50%;
+      pointer-events: none;
+      transition: all 0.3s ease;
+    }
+    .connection-line {
+      position: absolute;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(0,255,255,0.3), rgba(0,255,255,0.1), rgba(0,255,255,0.3));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+    .ripple {
+      position: absolute;
+      border: 2px solid rgba(0,255,255,0.6);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: rippleEffect 1s ease-out forwards;
+    }
+    @keyframes rippleEffect {
+      0% {
+        width: 0;
+        height: 0;
+        opacity: 1;
+      }
+      100% {
+        width: 100px;
+        height: 100px;
+        opacity: 0;
+      }
+    }
+    .login-container {
+      position: relative;
+      z-index: 1;
+      background-color: #fff;
+      padding: 40px 50px;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8), 0 0 20px rgba(0, 255, 255, 0.5);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
+    }
+    .login-container h2 {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+      color: #222;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      outline: none;
+      border-radius: 4px;
+    }
+    .form-group button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      width: 100%;
+      background-color: #000;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .form-group button:hover {
+      background-color: #333;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow-lines" id="particleContainer"></div>
+  <div class="login-container">
+    {% load static %}
+    <img src="{% static 'logo_renewed.png' %}" alt="Logo" style="height: 120px; margin-bottom: 15px;">
+    <h2>BRIGHTWAY FOUNDATION SCHOOL AND ACADEMY</h2>
+    <!-- Update form to use POST method -->
+    <form method="POST" action="{% url 'admin_dashboard' %}">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required />
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <div class="form-group">
+        <button type="submit">Login</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    const container = document.getElementById('particleContainer');
+    const particles = [];
+    const connections = [];
+    const particleCount = 80;
+    let mouseX = 0, mouseY = 0;
+    // Create particles
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div');
+      particle.className = 'particle';
+      particle.style.left = Math.random() * 100 + '%';
+      particle.style.top = Math.random() * 100 + '%';
+      container.appendChild(particle);
+      particles.push({
+        element: particle,
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        baseX: Math.random() * window.innerWidth,
+        baseY: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5
+      });
+    }
+    // Animate particles
+    function animate() {
+      particles.forEach((particle, i) => {
+        // Drift animation
+        particle.baseX += particle.vx;
+        particle.baseY += particle.vy;
+        // Bounce off edges
+        if (particle.baseX < 0 || particle.baseX > window.innerWidth) particle.vx *= -1;
+        if (particle.baseY < 0 || particle.baseY > window.innerHeight) particle.vy *= -1;
+        // Mouse interaction
+        const dx = mouseX - particle.baseX;
+        const dy = mouseY - particle.baseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const maxDistance = 200;
+        if (distance < maxDistance) {
+          const force = (maxDistance - distance) / maxDistance;
+          const moveX = dx * force * 0.15;
+          const moveY = dy * force * 0.15;
+          particle.x = particle.baseX + moveX;
+          particle.y = particle.baseY + moveY;
+          particle.element.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + force * 2})`;
+          particle.element.style.opacity = 0.3 + force * 0.7;
+          // Create connections (only for particles near mouse)
+          if (distance < maxDistance) {
+            particles.forEach((otherParticle, j) => {
+              if (i !== j && j > i) {
+                const otherDx = particle.x - otherParticle.x;
+                const otherDy = particle.y - otherParticle.y;
+                const otherDistance = Math.sqrt(otherDx * otherDx + otherDy * otherDy);
+                if (otherDistance < 80) {
+                  drawConnection(particle, otherParticle, otherDistance);
+                }
+              }
+            });
+          }
+        } else {
+          particle.element.style.transform = 'translate(0, 0) scale(1)';
+          particle.element.style.opacity = 0.3;
+        }
+        particle.element.style.left = particle.baseX + 'px';
+        particle.element.style.top = particle.baseY + 'px';
+      });
+      // Clear old connections
+      connections.forEach(line => line.remove());
+      connections.length = 0;
+      requestAnimationFrame(animate);
+    }
+    function drawConnection(p1, p2, distance) {
+      const line = document.createElement('div');
+      line.className = 'connection-line';
+      const length = distance;
+      const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x) * 180 / Math.PI;
+      line.style.width = length + 'px';
+      line.style.left = p1.x + 'px';
+      line.style.top = p1.y + 'px';
+      line.style.transform = `rotate(${angle}deg)`;
+      line.style.opacity = (100 - distance) / 100;
+      container.appendChild(line);
+      connections.push(line);
+    }
+    function createRipple(x, y) {
+      const ripple = document.createElement('div');
+      ripple.className = 'ripple';
+      ripple.style.left = x + 'px';
+      ripple.style.top = y + 'px';
+      ripple.style.transform = 'translate(-50%, -50%)';
+      container.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 1000);
+    }
+    // Mouse events
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+    document.addEventListener('click', (e) => {
+      createRipple(e.clientX, e.clientY);
+      // Create new stars at click location
+      for (let i = 0; i < 8; i++) {
+        const newParticle = document.createElement('div');
+        newParticle.className = 'particle';
+        const offsetX = (Math.random() - 0.5) * 100;
+        const offsetY = (Math.random() - 0.5) * 100;
+        container.appendChild(newParticle);
+        particles.push({
+          element: newParticle,
+          x: e.clientX + offsetX,
+          y: e.clientY + offsetY,
+          baseX: e.clientX + offsetX,
+          baseY: e.clientY + offsetY,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2
+        });
+      }
+      // Explosion effect on existing particles
+      particles.forEach(particle => {
+        const dx = e.clientX - particle.baseX;
+        const dy = e.clientY - particle.baseY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < 150) {
+          const force = (150 - distance) / 150;
+          particle.vx += (Math.random() - 0.5) * force * 2;
+          particle.vy += (Math.random() - 0.5) * force * 2;
+        }
+      });
+    });
+    animate();
+  </script>
+</body>
+</html>

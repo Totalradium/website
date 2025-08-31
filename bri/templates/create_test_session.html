@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Test Session</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .form-section {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar {
+      border-right: 1px solid #ddd;
+      height: 100vh;
+      padding-top: 30px;
+    }
+
+    .sidebar h5 {
+      margin-bottom: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px 15px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #2bb3b3;
+      color: #fff;
+    }
+
+    .form-title {
+      font-weight: bold;
+      margin-bottom: 25px;
+      color: #2bb3b3;
+    }
+
+    .btn-custom {
+      background-color: #2bb3b3;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-custom:hover {
+      background-color: #239292;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_home' %}">Attendance</a>
+        <a href="{% url 'test_management' %}" class="active">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="#">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="col-md-10 p-5">
+        <div class="form-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="form-title">Create Test Session</h3>
+            <div>
+              <a href="{% url 'test_management' %}" class="btn btn-sm btn-outline-secondary">Back to Test Management</a>
+            </div>
+          </div>
+
+          <form method="POST">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-4">
+                <label class="form-label">Session Name</label>
+                <input type="text" name="name" class="form-control" placeholder="e.g., Monthly Test - January 2024" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Session Type</label>
+                <select name="session_type" class="form-control" required>
+                  <option value="monthly">Monthly Test</option>
+                  <option value="session_exam">Test Session Exam</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Classes & Sections</label>
+                <div class="border p-3" style="max-height: 200px; overflow-y: auto;">
+                  {% for class in classes %}
+                    <div class="mb-2">
+                      <strong>{{ class.class_name }}</strong>
+                      <div class="ms-3">
+                        {% for section in class.sections.all %}
+                          <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="class_sections" value="{{ class.id }}_{{ section.id }}" id="cs_{{ class.id }}_{{ section.id }}">
+                            <label class="form-check-label" for="cs_{{ class.id }}_{{ section.id }}">
+                              {{ section.std_section }}
+                            </label>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    </div>
+                  {% endfor %}
+                </div>
+                <small class="text-muted">Select multiple classes and sections for this test session</small>
+              </div>
+              <div class="col-md-12 mt-3">
+                <label class="form-label">Month/Year</label>
+                <input type="month" name="month" class="form-control" required>
+              </div>
+              <div class="col-md-12 mt-4">
+                <button type="submit" class="btn btn-custom">Create Test Session</button>
+                <a href="{% url 'test_management' %}" class="btn btn-secondary ms-2">Cancel</a>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Add select all functionality
+    function selectAllSections(className) {
+      const checkboxes = document.querySelectorAll(`input[id*="_${className}_"]`);
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      
+      checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+      });
+    }
+  </script>
+</body>
+</html>

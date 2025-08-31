@@ -1,0 +1,27 @@
+2025/08/28-14:32:49.929 543c Reusing MANIFEST C:\Users\A_R\Desktop\Brighway Site\website\whatsapp_profile\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2025/08/28-14:32:49.930 543c Recovering log #228
+2025/08/28-14:32:50.000 543c Reusing old log C:\Users\A_R\Desktop\Brighway Site\website\whatsapp_profile\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000228.log 
+2025/08/28-14:32:51.486 4c84 Level-0 table #240: started
+2025/08/28-14:32:51.515 4c84 Level-0 table #240: 562968 bytes OK
+2025/08/28-14:32:51.518 4c84 Delete type=0 #228
+2025/08/28-14:32:51.521 4c84 Manual compaction at level-0 from '\x00\x1f\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00 \x00\x00\x00' @ 0 : 0; will stop at (end)
+2025/08/28-14:32:53.125 543c Compacting 1@1 + 8@2 files
+2025/08/28-14:32:53.291 543c Generated table #241@1: 49467 keys, 2201604 bytes
+2025/08/28-14:32:53.459 543c Generated table #242@1: 36763 keys, 2201423 bytes
+2025/08/28-14:32:53.574 543c Generated table #243@1: 2004 keys, 2143504 bytes
+2025/08/28-14:32:53.834 543c Generated table #244@1: 2996 keys, 2156526 bytes
+2025/08/28-14:32:54.186 543c Generated table #245@1: 19965 keys, 2213292 bytes
+2025/08/28-14:32:54.521 543c Generated table #246@1: 40901 keys, 2255308 bytes
+2025/08/28-14:32:54.611 543c Generated table #247@1: 24389 keys, 2215217 bytes
+2025/08/28-14:32:54.643 543c Generated table #248@1: 32045 keys, 750293 bytes
+2025/08/28-14:32:54.643 543c Compacted 1@1 + 8@2 files => 16137167 bytes
+2025/08/28-14:32:54.648 543c compacted to: files[ 0 0 8 0 0 0 0 ]
+2025/08/28-14:32:54.649 543c Delete type=2 #230
+2025/08/28-14:32:54.649 543c Delete type=2 #231
+2025/08/28-14:32:54.649 543c Delete type=2 #232
+2025/08/28-14:32:54.649 543c Delete type=2 #233
+2025/08/28-14:32:54.649 543c Delete type=2 #234
+2025/08/28-14:32:54.649 543c Delete type=2 #235
+2025/08/28-14:32:54.649 543c Delete type=2 #236
+2025/08/28-14:32:54.650 543c Delete type=2 #237
+2025/08/28-14:32:54.650 543c Delete type=2 #240

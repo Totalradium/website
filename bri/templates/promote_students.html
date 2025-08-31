@@ -1,0 +1,82 @@
+{% extends "students.html" %}
+
+{% block title %}
+  Promote Students
+{% endblock %}
+
+{% block content %}
+<form method="GET" class="row g-3 mb-4">
+  <div class="col-md-3">
+    <label>From Class</label>
+    <select name="source_class" class="form-select" onchange="this.form.submit()">
+      <option value="">Select Class</option>
+      {% for c in class_list %}
+        <option value="{{ c.id }}" {% if filters.source_class == c.id|stringformat:"s" %}selected{% endif %}>{{ c.class_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label>From Section</label>
+    <select name="source_section" class="form-select" onchange="this.form.submit()">
+      <option value="">Select Section</option>
+      {% for s in source_sections %}
+        <option value="{{ s.id }}" {% if filters.source_section == s.id|stringformat:"s" %}selected{% endif %}>{{ s.std_section }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label>To Class</label>
+    <select name="target_class" class="form-select">
+      <option value="">Select Class</option>
+      {% for c in class_list %}
+        <option value="{{ c.id }}" {% if filters.target_class == c.id|stringformat:"s" %}selected{% endif %}>{{ c.class_name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label>To Section</label>
+    <select name="target_section" class="form-select">
+      <option value="">Select Section</option>
+      {% for s in target_sections %}
+        <option value="{{ s.id }}" {% if filters.target_section == s.id|stringformat:"s" %}selected{% endif %}>{{ s.std_section }}</option>
+      {% endfor %}
+    </select>
+  </div>
+</form>
+
+<form method="POST" onsubmit="return confirm('Promote selected students to new class/section?');">
+  {% csrf_token %}
+  <table class="table table-bordered">
+    <thead class="table-light">
+      <tr>
+        <th><input type="checkbox" id="selectAll" /></th>
+        <th>Name</th>
+        <th>Class</th>
+        <th>Section</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if students %}
+        {% for stud in students %}
+          <tr>
+            <td><input type="checkbox" name="selected_students" value="{{ stud.id }}" class="student-checkbox" /></td>
+            <td>{{ stud.std_fname }} {{ stud.std_lname }}</td>
+            <td>{{ stud.std_class.class_name }}</td>
+            <td>{{ stud.std_section.std_section }}</td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr><td colspan="4" class="text-center">No students found.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+  <button type="submit" class="btn btn-primary">Promote Selected</button>
+</form>
+
+<script>
+document.getElementById('selectAll').addEventListener('change', function() {
+  document.querySelectorAll('.student-checkbox').forEach(cb => cb.checked = this.checked);
+});
+</script>
+{% endblock %}
