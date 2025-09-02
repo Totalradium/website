@@ -11,3 +11,4 @@ django-phonenumber-field==7.1.0
 phonenumbers==8.13.19
 python-barcode==0.15.1
 reportlab==4.0.4
+# end of commint
