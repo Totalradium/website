@@ -9,3 +9,4 @@ python-decouple==3.8
 dj-database-url==2.1.0
 django-phonenumber-field==7.1.0
 phonenumbers==8.13.19
+python-barcode==0.15.1
