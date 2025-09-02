@@ -1,0 +1,34 @@
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Django
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+staticfiles/
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# WhatsApp profiles (contains sensitive data)
+whatsapp_profile/
+whatsapp_profile_chrome/
+
+# Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# OS
+Thumbs.db
