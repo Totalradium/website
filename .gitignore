@@ -3,6 +3,15 @@
 .env.local
 .env.production
 
+# Secret files
+SECRET_KEY
+EMAIL_HOST_PASSWORD
+DATABASE_PASSWORD
+API_KEY
+*.key
+*.pem
+*.p12
+
 # Django
 *.pyc
 __pycache__/

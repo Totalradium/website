@@ -39,9 +39,20 @@ Set these environment variables in your deployment platform:
 2. Update values in `.env` file
 3. Run: `python manage.py runserver`
 
+## Secret Files (Render)
+
+Render stores secret files at `/etc/secrets/<filename>`
+
+### In Render Dashboard:
+1. Go to your service settings
+2. Add Secret Files:
+   - Name: `SECRET_KEY`, Content: your-production-secret-key
+   - Name: `EMAIL_HOST_PASSWORD`, Content: your-email-password
+
+### Files are automatically available at runtime in `/etc/secrets/`
+
 ### Security Notes
 
-- Never commit `.env` files to version control
+- Secret files take precedence over environment variables
+- Never commit secret files to version control
 - Use strong, unique SECRET_KEY for production
-- Set DEBUG=False in production
-- Configure HTTPS and security headers for production
