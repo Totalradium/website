@@ -15,13 +15,7 @@ from pathlib import Path
 from decouple import config
 import dj_database_url
 import os
-
-def get_secret(name, default=None):
-    try:
-        return Path(f'/etc/secrets/{name}').read_text().strip()
-    except:
-        return config(name, default=default)
-
+from django.core.management.utils import get_random_secret_key
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,10 +24,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = get_secret('SECRET_KEY', 'django-insecure-juvy_ntpn&_qlx7%29#_^#8&8v+#-8!jo@51sb6_3%$e62()g1')
-
+SECRET_KEY = config("DJANAGO_SECRET_KEY", cast=str, default=get_random_secret_key())
+print(SECRET_KEY, get_random_secret_key())
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config("DJANGO_DEBUG", cast=bool, default=True)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.onrender.com').split(',')
 
