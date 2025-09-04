@@ -80,7 +80,7 @@ pandocfilters==1.5.1
 parso==0.8.5
 pexpect==4.9.0
 phonenumbers==8.13.19
-Pillow==10.4.0
+Pillow==11.1.0
 platformdirs==4.4.0
 plotly==6.3.0
 prometheus_client==0.22.1
