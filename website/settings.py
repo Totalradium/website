@@ -35,7 +35,7 @@ SECRET_KEY = get_secret('SECRET_KEY', 'django-insecure-juvy_ntpn&_qlx7%29#_^#8&8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.vercel.app').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.onrender.com').split(',')
 
 SESSION_COOKIE_NAME = 'sessionid'
 SESSION_COOKIE_SAMESITE = 'Lax'
