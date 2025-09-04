@@ -2754,3 +2754,112 @@ def get_message_status(request):
         'messages': message_status_log,
         'completed': len([m for m in message_status_log if m['status'] == 'sent']) == len(message_status_log)
     })
+
+# -----------------------
+# TIMETABLE VIEWS
+# -----------------------
+@admin_required
+def timetable_management(request):
+    """Timetable management dashboard"""
+    classes = Class.objects.all()
+    teachers = Teacher.objects.filter(is_active=True)
+    
+    if request.method == 'POST':
+        class_id = request.POST.get('class_id')
+        section_id = request.POST.get('section_id')
+        subject = request.POST.get('subject')
+        teacher_id = request.POST.get('teacher_id')
+        day_of_week = request.POST.get('day_of_week')
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        
+        try:
+            Timetable.objects.create(
+                class_name_id=class_id,
+                section_id=section_id,
+                subject=subject,
+                teacher_id=teacher_id,
+                day_of_week=day_of_week,
+                start_time=start_time,
+                end_time=end_time
+            )
+            messages.success(request, 'Timetable entry added successfully!')
+        except Exception as e:
+            messages.error(request, f'Error: {e}')
+        
+        return redirect('timetable_management')
+    
+    timetables = Timetable.objects.select_related('class_name', 'section', 'teacher').filter(is_active=True)
+    
+    return render(request, 'timetable_management.html', {
+        'classes': classes,
+        'teachers': teachers,
+        'timetables': timetables
+    })
+
+@admin_required
+def view_timetable(request):
+    """View timetable for specific class and section"""
+    classes = Class.objects.all()
+    class_id = request.GET.get('class_id')
+    section_id = request.GET.get('section_id')
+    
+    timetable_data = None
+    selected_class = None
+    selected_section = None
+    
+    if class_id and section_id:
+        selected_class = get_object_or_404(Class, id=class_id)
+        selected_section = get_object_or_404(Section, id=section_id)
+        
+        timetables = Timetable.objects.filter(
+            class_name_id=class_id,
+            section_id=section_id,
+            is_active=True
+        ).select_related('teacher')
+        
+        # Organize by day and time
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+        timetable_data = {}
+        
+        for day in days:
+            day_schedule = timetables.filter(day_of_week=day).order_by('start_time')
+            timetable_data[day] = day_schedule
+    
+    return render(request, 'view_timetable.html', {
+        'classes': classes,
+        'timetable_data': timetable_data,
+        'selected_class': selected_class,
+        'selected_section': selected_section,
+        'selected_class_id': class_id,
+        'selected_section_id': section_id
+    })
+
+@admin_required
+def edit_timetable_entry(request, entry_id):
+    """Edit timetable entry"""
+    entry = get_object_or_404(Timetable, id=entry_id)
+    
+    if request.method == 'POST':
+        entry.subject = request.POST.get('subject')
+        entry.teacher_id = request.POST.get('teacher_id')
+        entry.start_time = request.POST.get('start_time')
+        entry.end_time = request.POST.get('end_time')
+        entry.save()
+        
+        messages.success(request, 'Timetable entry updated successfully!')
+        return redirect('timetable_management')
+    
+    teachers = Teacher.objects.filter(is_active=True)
+    return render(request, 'edit_timetable_entry.html', {
+        'entry': entry,
+        'teachers': teachers
+    })
+
+@admin_required
+def delete_timetable_entry(request, entry_id):
+    """Delete timetable entry"""
+    entry = get_object_or_404(Timetable, id=entry_id)
+    entry.delete()
+    messages.success(request, 'Timetable entry deleted successfully!')
+    return redirect('timetable_management')

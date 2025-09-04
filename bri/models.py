@@ -366,6 +366,35 @@ class UserActivityLog(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.action_type} - {self.timestamp}"
 
+# -----------------------
+# TIMETABLE
+# -----------------------
+class Timetable(models.Model):
+    DAYS_OF_WEEK = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+    ]
+    
+    class_name = models.ForeignKey(Class, on_delete=models.CASCADE)
+    section = models.ForeignKey(Section, on_delete=models.CASCADE)
+    subject = models.CharField(max_length=50)
+    teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE)
+    day_of_week = models.CharField(max_length=10, choices=DAYS_OF_WEEK)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ('class_name', 'section', 'day_of_week', 'start_time')
+    
+    def __str__(self):
+        return f"{self.class_name}-{self.section} | {self.subject} | {self.get_day_of_week_display()} {self.start_time}-{self.end_time}"
+
 class PromoteBatchForm(forms.Form):
     source_class = forms.ModelChoiceField(queryset=Class.objects.filter(is_active=True), label="From Class")
     source_section = forms.ModelChoiceField(queryset=Section.objects.none(), label="From Section")

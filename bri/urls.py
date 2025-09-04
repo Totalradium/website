@@ -84,6 +84,12 @@ urlpatterns = [
     path('select_tests_for_print/<int:session_id>/', views.select_tests_for_print, name='select_tests_for_print'),
     path('get_message_status/', views.get_message_status, name='get_message_status'),
     
+    # Timetable URLs
+    path('timetable_management/', views.timetable_management, name='timetable_management'),
+    path('view_timetable/', views.view_timetable, name='view_timetable'),
+    path('edit_timetable_entry/<int:entry_id>/', views.edit_timetable_entry, name='edit_timetable_entry'),
+    path('delete_timetable_entry/<int:entry_id>/', views.delete_timetable_entry, name='delete_timetable_entry'),
+    
     # Reports URLs
     path('', include('bri.reports_urls')),
 ]
