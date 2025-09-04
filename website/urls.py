@@ -25,6 +25,7 @@ urlpatterns = [
     path('', include(urls)),
 ]
 
-# Serve media files
+# Serve media files in all environments
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+if not settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
