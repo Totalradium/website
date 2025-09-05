@@ -1,0 +1,106 @@
+{% extends "students.html" %}
+
+{% block title %}
+  Delete / Disable Students
+{% endblock %}
+
+{% block content %}
+  <!-- Filters Section -->
+  <form method="GET" class="row g-3 mb-4">
+    <div class="col-md-4">
+      <label for="classFilter" class="form-label">Class</label>
+      <select id="classFilter" name="class" class="form-control" required>
+        <option value="">Select Class</option>
+        {% for c in class_list %}
+          <option value="{{ c.class_name }}" {% if filters.class == c.class_name %}selected{% endif %}>
+            {{ c.class_name }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-4">
+      <label for="sectionFilter" class="form-label">Section</label>
+      <select id="sectionFilter" name="section" class="form-control" required>
+        <option value="">Select Section</option>
+        {% for k in section_list %}
+          <option value="{{ k.id }}" {% if filters.section == k.id|stringformat:"s" %}selected{% endif %}>
+            {{ k.std_section }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-4 d-flex align-items-end">
+      <button type="submit" class="btn btn-primary w-100">Filter</button>
+    </div>
+  </form>
+
+  <!-- Action Form -->
+  <form method="POST" action="{% url 'delete_disable_students' %}">
+    {% csrf_token %}
+
+    <table class="table table-bordered bg-white">
+      <thead class="table-info">
+        <tr>
+          <th></th> <!-- Checkbox column -->
+          <th>Name</th>
+          <th>Class</th>
+          <th>Section</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if students %}
+          {% for stud in students %}
+            <tr>
+              <td>
+                <input type="checkbox" name="selected_students" value="{{ stud.id }}">
+              </td>
+              <td>{{ stud.std_fname }} {{ stud.std_lname }}</td>
+              <td>{{ stud.std_class.class_name }}</td>
+              <td>
+                {% if stud.std_section %}
+                  {{ stud.std_section.std_section }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+              <td>
+                {% if stud.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Disabled</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="text-center">No students found for selected class/section.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 mt-3">
+      <button type="submit" name="action" value="enable" class="btn btn-success">
+        Enable Selected
+      </button>
+
+      <button type="submit" name="action" value="disable" class="btn btn-warning">
+        Disable Selected
+      </button>
+
+      <button 
+        type="submit" 
+        name="action" 
+        value="delete" 
+        class="btn btn-danger"
+        onclick="return confirm('Are you sure you want to permanently delete the selected student(s)? This action cannot be undone.')">
+        Delete Selected
+      </button>
+    </div>
+  </form>
+{% endblock %}

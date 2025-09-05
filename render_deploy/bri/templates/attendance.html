@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Attendance System</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .form-section {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar {
+      border-right: 1px solid #ddd;
+      height: 100vh;
+      padding-top: 30px;
+    }
+
+    .sidebar h5 {
+      margin-bottom: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px 15px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #2bb3b3;
+      color: #fff;
+    }
+
+    .form-title {
+      font-weight: bold;
+      margin-bottom: 25px;
+      color: #2bb3b3;
+    }
+
+    .btn-custom {
+      background-color: #2bb3b3;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-custom:hover {
+      background-color: #239292;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}" class="active">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'sync_dashboard' %}">Sync to Online</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="col-md-10 p-5">
+        <div class="form-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Attendance System</h2>
+            <a href="{% url 'student_monthly_report' %}" class="btn btn-custom">
+              <i class="fas fa-chart-line"></i> Student Monthly Report
+            </a>
+          </div>
+
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+
+          <!-- Filter Form -->
+          <form method="POST" action="{% url 'attendance_view' %}" class="row g-3 mb-4">
+            {% csrf_token %}
+
+            <div class="col-md-4">
+              <label for="class_id" class="form-label">Class</label>
+              <select name="class_id" id="class_id" class="form-control" required>
+                <option value="">-- Select Class --</option>
+                {% for c in classes %}
+                  <option value="{{ c.id }}" {% if class_id|stringformat:"s" == c.id|stringformat:"s" %}selected{% endif %}>
+                    {{ c.class_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label for="section_id" class="form-label">Section</label>
+              <select name="section_id" id="section_id" class="form-control" required>
+                <option value="">-- Select Section --</option>
+                {% for s in sections %}
+                  <option value="{{ s.id }}" {% if section_id|stringformat:"s" == s.id|stringformat:"s" %}selected{% endif %}>
+                    {{ s.std_section }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-4 d-flex align-items-end">
+              <button type="submit" class="btn btn-success w-100">Load Students</button>
+            </div>
+          </form>
+
+          <!-- Attendance Table -->
+          <form method="POST" action="{% url 'save_attendance' %}">
+            {% csrf_token %}
+            <input type="hidden" name="class_id" value="{{ class_id }}">
+            <input type="hidden" name="section_id" value="{{ section_id }}">
+
+            {% if selected_class_name and selected_section_name %}
+              <div class="alert alert-info">
+                <strong>Selected:</strong> Class - {{ selected_class_name }}, Section - {{ selected_section_name }}
+              </div>
+            {% endif %}
+
+            <div class="table-responsive">
+              <table class="table table-bordered text-center">
+                <thead class="table-dark">
+                  <tr>
+                    <th>Student Name</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Marked Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% if students %}
+                    {% for stud in students %}
+                      <tr>
+                        <td>{{ stud.std_fname }} {{ stud.std_lname }}</td>
+                        <td>
+                          <input type="radio" name="status_{{ stud.id }}" value="Present" 
+                            {% if stud.attendance_status == 'Present' %}checked{% endif %}>
+                        </td>
+                        <td>
+                          <input type="radio" name="status_{{ stud.id }}" value="Absent" 
+                            {% if stud.attendance_status == 'Absent' %}checked{% endif %}>
+                        </td>
+                        <td>
+                          <input type="text" class="form-control" name="time_{{ stud.id }}" readonly
+                            value="{{ stud.attendance_time }}">
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  {% else %}
+                    <tr>
+                      <td colspan="4">No students found for this class & section.</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="text-end">
+              <button type="submit" class="btn btn-success">Save Attendance</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Auto-dismiss alerts after 3 seconds
+    setTimeout(function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(alert) {
+        alert.classList.remove('show');
+        alert.classList.add('fade');
+        setTimeout(() => alert.remove(), 300);
+      });
+    }, 3000);
+  </script>
+  <script>
+    document.getElementById('class_id').addEventListener('change', function() {
+      const classId = this.value;
+      const sectionSelect = document.getElementById('section_id');
+      
+      sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
+      
+      if (classId) {
+        fetch(`/get_sections_for_class/${classId}/`)
+          .then(response => response.json())
+          .then(data => {
+            data.sections.forEach(section => {
+              const option = document.createElement('option');
+              option.value = section.id;
+              option.text = section.std_section;
+              sectionSelect.appendChild(option);
+            });
+          });
+      }
+    });
+  </script>
+</body>
+</html>
