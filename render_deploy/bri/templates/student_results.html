@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Results - Student Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .main-card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .student-header { background: #2bb3b3; color: white; border-radius: 15px 15px 0 0; padding: 20px; }
+        .nav-pills .nav-link.active { background-color: #2bb3b3; }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="main-card">
+                    <div class="student-header text-center">
+                        <h4>📊 My Test Results</h4>
+                        <p class="mb-0">{{ student.std_fname }} {{ student.std_lname }} - {{ student.std_class.class_name }}-{{ student.std_section.std_section }}</p>
+                    </div>
+                    
+                    <div class="p-4">
+                        <ul class="nav nav-pills mb-4">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_dashboard' %}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_attendance' %}">Attendance</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'student_fees' %}">Fees</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link active" href="{% url 'student_results' %}">Results</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-danger" href="{% url 'student_logout' %}">Logout</a>
+                            </li>
+                        </ul>
+
+                        <!-- Test Sessions -->
+                        {% for session in test_sessions %}
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ session.name }} - {{ session.month }}</h5>
+                                <a href="{% url 'print_result_card' session.id %}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fas fa-print"></i> Print Result Card
+                                </a>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">Test session for {{ session.class_name.class_name }}-{{ session.section.std_section }}</p>
+                                {% if session.is_active %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Completed</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center">
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">No test results available</h5>
+                            <p class="text-muted">Your test results will appear here once exams are conducted.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

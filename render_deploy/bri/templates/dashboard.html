@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>School Management System - Online</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .main-card { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .header-section { background: #2bb3b3; color: white; border-radius: 15px 15px 0 0; padding: 30px; text-align: center; }
+        .stats-card { transition: transform 0.2s; }
+        .stats-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="main-card">
+                    <div class="header-section">
+                        <h2>📚 BRIGHTWAY FOUNDATION SCHOOL</h2>
+                        <p class="mb-0">Online School Management System</p>
+                    </div>
+                    
+                    <div class="p-5">
+                        <!-- Statistics -->
+                        <div class="row mb-5">
+                            <div class="col-md-3">
+                                <div class="card stats-card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                        <h4>{{ total_students }}</h4>
+                                        <p class="text-muted">Total Students</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stats-card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-chalkboard-teacher fa-3x text-success mb-3"></i>
+                                        <h4>{{ total_teachers }}</h4>
+                                        <p class="text-muted">Teachers</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stats-card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-school fa-3x text-warning mb-3"></i>
+                                        <h4>{{ total_classes }}</h4>
+                                        <p class="text-muted">Classes</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card stats-card text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-calendar-check fa-3x text-info mb-3"></i>
+                                        <h4>{{ recent_attendance|length }}</h4>
+                                        <p class="text-muted">Recent Records</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Access Portals -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card stats-card">
+                                    <div class="card-body text-center p-4">
+                                        <i class="fas fa-user-graduate fa-4x text-primary mb-3"></i>
+                                        <h4>Student Portal</h4>
+                                        <p class="text-muted">Students can login to view their attendance, fees, and results</p>
+                                        <a href="{% url 'student_login' %}" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-sign-in-alt"></i> Student Login
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card stats-card">
+                                    <div class="card-body text-center p-4">
+                                        <i class="fas fa-users-cog fa-4x text-success mb-3"></i>
+                                        <h4>Admin Portal</h4>
+                                        <p class="text-muted">Administrative access for school management and data entry</p>
+                                        <div class="alert alert-info">
+                                            <small><i class="fas fa-info-circle"></i> Admin access is available locally only</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        {% if recent_attendance %}
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5><i class="fas fa-clock"></i> Recent Activity</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Student</th>
+                                                <th>Date</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for att in recent_attendance %}
+                                            <tr>
+                                                <td>{{ att.student.std_fname }} {{ att.student.std_lname }}</td>
+                                                <td>{{ att.attendance_date|date:"d M Y" }}</td>
+                                                <td>
+                                                    {% if att.status == 'Present' %}
+                                                        <span class="badge bg-success">Present</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Absent</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Footer -->
+                        <div class="text-center mt-5">
+                            <p class="text-muted">
+                                <i class="fas fa-sync-alt"></i> Data is synchronized from the local school management system
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
