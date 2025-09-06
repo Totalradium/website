@@ -61,11 +61,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'website.wsgi.application'
 
-# Database - Use PostgreSQL on Render
+# Database - Use SQLite for simplicity
 DATABASES = {
-    'default': dj_database_url.parse(
-        config('DATABASE_URL', default='sqlite:///db.sqlite3')
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
 
 # Password validation
