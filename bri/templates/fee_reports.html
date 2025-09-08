@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Fee Reports</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .form-section {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .sidebar {
+      border-right: 1px solid #ddd;
+      height: 100vh;
+      padding-top: 30px;
+    }
+
+    .sidebar h5 {
+      margin-bottom: 20px;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 10px 15px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #2bb3b3;
+      color: #fff;
+    }
+
+    .form-title {
+      font-weight: bold;
+      margin-bottom: 25px;
+      color: #2bb3b3;
+    }
+
+    .btn-custom {
+      background-color: #2bb3b3;
+      color: #fff;
+      border: none;
+    }
+
+    .btn-custom:hover {
+      background-color: #239292;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}" class="active">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="#">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+
+      <!-- Main Content Area -->
+      <div class="col-md-10 p-5">
+        <div class="form-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="form-title">Fee Reports</h3>
+            <div>
+              <a href="{% url 'fee_dashboard' %}" class="btn btn-sm btn-outline-secondary me-2">Dashboard</a>
+              <a href="{% url 'fee_management' %}" class="btn btn-sm btn-outline-info me-2">Fee Settings</a>
+              <a href="{% url 'defaulter_list' %}" class="btn btn-sm btn-outline-danger me-2">Defaulters</a>
+              <button class="btn btn-sm btn-success" onclick="sendFeeReminders()">Send WhatsApp Reminders</button>
+            </div>
+          </div>
+
+          <!-- Filter Form -->
+          <form method="GET" class="row g-3 mb-4">
+            <div class="col-md-3">
+              <label for="class_id" class="form-label">Class</label>
+              <select name="class_id" id="class_id" class="form-control">
+                <option value="">All Classes</option>
+                {% for class in classes %}
+                  <option value="{{ class.id }}" {% if filters.class_id == class.id|stringformat:"s" %}selected{% endif %}>
+                    {{ class.class_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-3">
+              <label for="section_id" class="form-label">Section</label>
+              <select name="section_id" id="section_id" class="form-control">
+                <option value="">All Sections</option>
+                {% for section in sections %}
+                  <option value="{{ section.id }}" {% if filters.section_id == section.id|stringformat:"s" %}selected{% endif %}>
+                    {{ section.std_section }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="col-md-2">
+              <label for="month" class="form-label">Month</label>
+              <input type="month" name="month" id="month" class="form-control" value="{{ filters.month }}">
+            </div>
+
+            <div class="col-md-2">
+              <label for="status" class="form-label">Status</label>
+              <select name="status" id="status" class="form-control">
+                <option value="">All</option>
+                <option value="paid" {% if filters.status == "paid" %}selected{% endif %}>Paid</option>
+                <option value="unpaid" {% if filters.status == "unpaid" %}selected{% endif %}>Unpaid</option>
+              </select>
+            </div>
+
+            <div class="col-md-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+          </form>
+          
+          <!-- WhatsApp Actions -->
+          {% if student_fees %}
+          <div class="mb-3">
+            <div class="d-flex gap-2">
+              <button class="btn btn-warning btn-sm" onclick="selectUnpaidFees()">Select All Unpaid</button>
+              <button class="btn btn-success btn-sm" onclick="sendSelectedReminders()" id="sendRemindersBtn" disabled>Send Reminders to Selected</button>
+            </div>
+          </div>
+          {% endif %}
+          </form>
+
+          <!-- Fee Reports Table -->
+          <div class="table-responsive">
+            <table class="table table-bordered">
+              <thead class="table-dark">
+                <tr>
+                  <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                  <th>Student Name</th>
+                  <th>Class</th>
+                  <th>Section</th>
+                  <th>Month</th>
+                  <th>Amount Due</th>
+                  <th>Amount Paid</th>
+                  <th>Balance</th>
+                  <th>Status</th>
+                  <th>Due Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for student_fee in student_fees %}
+                  <tr>
+                    <td>
+                      {% if not student_fee.is_paid %}
+                        <input type="checkbox" class="fee-checkbox" value="{{ student_fee.id }}" 
+                               data-student="{{ student_fee.student.std_fname }} {{ student_fee.student.std_lname }}"
+                               data-phone="{{ student_fee.student.guardian_contact1|default:student_fee.student.guardian_contact2 }}"
+                               data-amount="{{ student_fee.amount_due }}"
+                               data-month="{{ student_fee.month }}"
+                               onchange="updateSendButton()">
+                      {% endif %}
+                    </td>
+                    <td>{{ student_fee.student.std_fname }} {{ student_fee.student.std_lname }}</td>
+                    <td>{{ student_fee.fee.class_name.class_name }}</td>
+                    <td>{{ student_fee.fee.section.std_section }}</td>
+                    <td>{{ student_fee.month }}</td>
+                    <td>PKR {{ student_fee.amount_due }}</td>
+                    <td>PKR {{ student_fee.amount_paid }}</td>
+                    <td>PKR {{ student_fee.balance }}</td>
+                    <td>
+                      {% if student_fee.is_paid %}
+                        <span class="badge bg-success">Paid</span>
+                      {% else %}
+                        <span class="badge bg-danger">Unpaid</span>
+                      {% endif %}
+                    </td>
+                    <td>{{ student_fee.due_date }}</td>
+                    <td>
+                      {% if not student_fee.is_paid %}
+                        <a href="{% url 'mark_fee_paid' student_fee.id %}" class="btn btn-sm btn-success me-1">Mark Paid</a>
+                        <button class="btn btn-sm btn-warning" onclick="sendSingleReminder('{{ student_fee.id }}', '{{ student_fee.student.std_fname }} {{ student_fee.student.std_lname }}', '{{ student_fee.student.guardian_contact1|default:student_fee.student.guardian_contact2 }}', '{{ student_fee.amount_due }}', '{{ student_fee.month }}')">Send Reminder</button>
+                      {% else %}
+                        <span class="text-muted">Paid</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="11" class="text-center">No fee records found.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    function toggleSelectAll() {
+      const selectAll = document.getElementById('selectAll');
+      const checkboxes = document.querySelectorAll('.fee-checkbox');
+      
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+      });
+      
+      updateSendButton();
+    }
+    
+    function selectUnpaidFees() {
+      const checkboxes = document.querySelectorAll('.fee-checkbox');
+      checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      document.getElementById('selectAll').checked = true;
+      updateSendButton();
+    }
+    
+    function updateSendButton() {
+      const checkedBoxes = document.querySelectorAll('.fee-checkbox:checked');
+      const sendBtn = document.getElementById('sendRemindersBtn');
+      
+      if (checkedBoxes.length > 0) {
+        sendBtn.disabled = false;
+        sendBtn.textContent = `Send Reminders to Selected (${checkedBoxes.length})`;
+      } else {
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Send Reminders to Selected';
+      }
+    }
+    
+    function sendSelectedReminders() {
+      const checkedBoxes = document.querySelectorAll('.fee-checkbox:checked');
+      
+      if (checkedBoxes.length === 0) {
+        alert('Please select at least one student.');
+        return;
+      }
+      
+      const students = [];
+      checkedBoxes.forEach(checkbox => {
+        students.push({
+          name: checkbox.dataset.student,
+          phone: checkbox.dataset.phone,
+          amount: checkbox.dataset.amount,
+          month: checkbox.dataset.month
+        });
+      });
+      
+      sendWhatsAppReminders(students);
+    }
+    
+    function sendSingleReminder(feeId, studentName, phone, amount, month) {
+      const students = [{
+        name: studentName,
+        phone: phone,
+        amount: amount,
+        month: month
+      }];
+      
+      sendWhatsAppReminders(students);
+    }
+    
+    function sendWhatsAppReminders(students) {
+      if (students.length === 0) {
+        alert('No students selected.');
+        return;
+      }
+      
+      // Show template selection modal
+      showTemplateModal(students);
+    }
+    
+    function showTemplateModal(students) {
+      // Create modal HTML
+      const modalHtml = `
+        <div class="modal fade" id="templateModal" tabindex="-1">
+          <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Select Message Template</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label">Choose Template:</label>
+                  <select id="templateSelect" class="form-control" onchange="loadTemplate()">
+                    <option value="">Select a template...</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label">Message Preview:</label>
+                  <textarea id="messagePreview" class="form-control" rows="6" placeholder="Select a template to preview message..."></textarea>
+                  <small class="text-muted">Available placeholders: {STUDENT_NAME}, {AMOUNT}, {MONTH}, {CLASS}, {SECTION}</small>
+                </div>
+                <div class="mb-3">
+                  <button class="btn btn-sm btn-outline-primary" onclick="editTemplate()">Edit Template</button>
+                  <button class="btn btn-sm btn-outline-success" onclick="createNewTemplate()">Create New</button>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="sendWithTemplate()">Send Messages</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // Remove existing modal if any
+      const existingModal = document.getElementById('templateModal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+      
+      // Add modal to body
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+      
+      // Load templates
+      loadTemplates();
+      
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById('templateModal'));
+      modal.show();
+      
+      // Store students data
+      window.selectedStudents = students;
+    }
+    
+    function loadTemplates() {
+      fetch('/get_message_templates/?type=fee_reminder')
+        .then(response => response.json())
+        .then(data => {
+          const select = document.getElementById('templateSelect');
+          select.innerHTML = '<option value="">Select a template...</option>';
+          
+          data.templates.forEach(template => {
+            const option = document.createElement('option');
+            option.value = template.id;
+            option.textContent = template.name;
+            option.dataset.message = template.message_text;
+            select.appendChild(option);
+          });
+        })
+        .catch(error => {
+          console.error('Error loading templates:', error);
+        });
+    }
+    
+    function loadTemplate() {
+      const select = document.getElementById('templateSelect');
+      const preview = document.getElementById('messagePreview');
+      
+      if (select.value) {
+        const selectedOption = select.options[select.selectedIndex];
+        preview.value = selectedOption.dataset.message;
+      } else {
+        preview.value = '';
+      }
+    }
+    
+    function sendWithTemplate() {
+      const messageTemplate = document.getElementById('messagePreview').value;
+      
+      if (!messageTemplate.trim()) {
+        alert('Please select or enter a message template.');
+        return;
+      }
+      
+      const students = window.selectedStudents;
+      
+      // Send to WhatsApp automation
+      fetch('/automate_whatsapp_messages/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+          students: students.map(s => ({
+            name: s.name,
+            phone: s.phone,
+            status: 'fee_reminder',
+            amount: s.amount,
+            month: s.month
+          })),
+          message: messageTemplate
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(`WhatsApp reminders sent to ${students.length} parents!`);
+          // Close modal
+          bootstrap.Modal.getInstance(document.getElementById('templateModal')).hide();
+        } else {
+          alert('Error sending reminders: ' + data.error);
+        }
+      })
+      .catch(error => {
+        alert('Error: ' + error);
+      });
+    }
+    
+    function editTemplate() {
+      const templateId = document.getElementById('templateSelect').value;
+      if (!templateId) {
+        alert('Please select a template to edit.');
+        return;
+      }
+      window.open(`/edit_message_template/${templateId}/`, '_blank');
+    }
+    
+    function createNewTemplate() {
+      window.open('/create_message_template/?type=fee_reminder', '_blank');
+    }
+    
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
+</body>
+</html>

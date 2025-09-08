@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Class and Section Management - Brihtway</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .form-section {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    }
+    .sidebar {
+      border-right: 1px solid #ddd;
+      height: 100vh;
+      padding-top: 30px;
+    }
+    .sidebar h5 {
+      margin-bottom: 20px;
+    }
+    .sidebar a {
+      display: block;
+      padding: 10px 15px;
+      color: #333;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-bottom: 5px;
+    }
+    .sidebar a:hover,
+    .sidebar a.active {
+      background-color: #2bb3b3;
+      color: #fff;
+    }
+    .form-title {
+      font-weight: bold;
+      margin-bottom: 25px;
+      color: #2bb3b3;
+    }
+    .btn-custom {
+      background-color: #2bb3b3;
+      color: #fff;
+      border: none;
+    }
+    .btn-custom:hover {
+      background-color: #239292;
+    }
+    .btn-sm a {
+      color: inherit;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
+        <a href="{% url 'batch_management' %}" class="active">Batch Management</a>
+        <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+      <!-- Main Content -->
+      <div class="col-md-10 p-5">
+        <div class="form-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="form-title">Class and Section Management</h3>
+            <div>
+              <a href="{% url 'promote_batch' %}" class="btn btn-sm btn-outline-success">Promote Class</a>
+            </div>
+          </div>
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+          <!-- Create Class -->
+          <form method="POST" class="mb-4">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="class_name">Create New Class</label>
+              <input type="text" name="class_name" id="class_name" class="form-control" placeholder="Class Name" required>
+            </div>
+            <button type="submit" name="create_class" class="btn btn-primary mt-2">Create Class</button>
+          </form>
+          <!-- Create Section -->
+          <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+              <label for="class_id">Select Class</label>
+              <select name="class_id" id="class_id" class="form-control" required>
+                <option value="">Select Class</option>
+                {% for cls in classes %}
+                  <option value="{{ cls.id }}">{{ cls.class_name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="section_name">Create New Section</label>
+              <input type="text" name="section_name" id="section_name" class="form-control" placeholder="Section Name" required>
+            </div>
+            <button type="submit" name="create_section" class="btn btn-success mt-2">Create Section</button>
+          </form>
+          <!-- Class/Section Table -->
+          <h4 class="mt-5">Existing Classes and Sections</h4>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>Order</th>
+                <th>Class Name</th>
+                <th>Sections</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+<tbody>
+  {% for cls in classes %}
+    {% for sec in cls.sections.all %}
+      <tr>
+        <td>
+          <div class="btn-group-vertical" role="group">
+            <button class="btn btn-sm btn-outline-primary" onclick="moveClass({{ cls.id }}, 'up')" title="Move Up">
+              <i class="fas fa-chevron-up"></i>
+            </button>
+            <button class="btn btn-sm btn-outline-primary" onclick="moveClass({{ cls.id }}, 'down')" title="Move Down">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+        </td>
+        <td>{{ cls.class_name }}</td>
+        <td>
+          <form method="POST" action="{% url 'update_section' sec.id %}" class="d-flex gap-2 align-items-center">
+            {% csrf_token %}
+            <input type="text" value="{{ sec.std_section }}" name="updated_section" class="form-control" />
+        </td>
+        <td>
+          {% if sec.is_active %}
+            <span class="badge bg-success">Active</span>
+          {% else %}
+            <span class="badge bg-danger">Inactive</span>
+          {% endif %}
+        </td>
+        <td class="d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn btn-sm btn-outline-info">Update</button>
+          </form>
+          <!-- Toggle Enable/Disable Button -->
+          <button class="btn btn-sm {% if sec.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#toggleModal"
+                  data-section-id="{{ sec.id }}"
+                  data-section-name="{{ sec.std_section }}"
+                  data-section-status="{{ sec.is_active }}">
+              {% if sec.is_active %}
+                  Disable
+              {% else %}
+                  Enable
+              {% endif %}
+          </button>
+          <!-- Delete Button -->
+          <button class="btn btn-sm btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteModal"
+                  data-section-id="{{ sec.id }}"
+                  data-section-name="{{ sec.std_section }}">
+            Delete
+          </button>
+          {% if forloop.first %}
+          <button class="btn btn-sm btn-outline-danger ms-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteClassModal"
+                  data-class-id="{{ cls.id }}"
+                  data-class-name="{{ cls.class_name }}">
+            Delete Class
+          </button>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  {% empty %}
+    <tr>
+      <td colspan="5" class="text-center">No classes or sections available.</td>
+    </tr>
+  {% endfor %}
+</tbody>
+          </table>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+      </div>
+    </form>
+  </div>
+</div>
+  <!-- Delete Section Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Delete Section</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete section "<strong id="deleteSectionName"></strong>"? This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Class Modal -->
+  <div class="modal fade" id="deleteClassModal" tabindex="-1" aria-labelledby="deleteClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteClassModalLabel">Delete Class</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete class "<strong id="deleteClassName"></strong>" and all its sections? This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteClassForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete Class</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toggle Modal -->
+  <div class="modal fade" id="toggleModal" tabindex="-1" aria-labelledby="toggleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="toggleModalLabel">Toggle Section Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="toggleModalMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="toggleForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" id="toggleSubmitButton" class="btn">Confirm</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap + JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function loadSections(classId) {
+      const sectionSelect = document.getElementById('sectionSelect');
+      sectionSelect.innerHTML = '<option value="">Loading...</option>';
+      if (!classId) {
+        sectionSelect.innerHTML = '<option value="">Select Section</option>';
+        return;
+      }
+      fetch(`/get_sections_for_class/${classId}/`)
+        .then(response => response.json())
+        .then(data => {
+          sectionSelect.innerHTML = '<option value="">Select Section</option>';
+          data.sections.forEach(section => {
+            sectionSelect.innerHTML += `<option value="${section.id}">${section.std_section}</option>`;
+          });
+        })
+        .catch(error => {
+          sectionSelect.innerHTML = '<option value="">Error loading sections</option>';
+        });
+    }
+    function deleteSubject(subjectId) {
+      if (confirm('Are you sure you want to delete this subject?')) {
+        fetch(`/delete_subject/${subjectId}/`, {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          }
+        }).then(() => location.reload());
+      }
+    }
+    function moveClass(classId, direction) {
+      fetch(`/move_class/${classId}/${direction}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+      }).then(() => location.reload());
+    }
+  </script>
+  <script>
+    // Auto-dismiss Bootstrap alerts after 3 seconds
+    setTimeout(function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(alert) {
+        alert.classList.remove('show');
+        alert.classList.add('fade');
+        setTimeout(() => alert.remove(), 300);
+      });
+    }, 3000);
+  </script>
+<script>
+  const toggleModal = document.getElementById('toggleModal');
+  toggleModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const sectionId = button.getAttribute('data-section-id');
+    const sectionName = button.getAttribute('data-section-name');
+    const isActive = button.getAttribute('data-section-status') === 'True';
+    const form = document.getElementById('toggleForm');
+    const message = document.getElementById('toggleModalMessage');
+    const submitButton = document.getElementById('toggleSubmitButton');
+    form.action = `/disable_section/${sectionId}/`;
+    if (isActive) {
+      message.innerHTML = `Are you sure you want to <strong>disable</strong> section "<strong>${sectionName}</strong>"?`;
+      submitButton.classList.remove('btn-success');
+      submitButton.classList.add('btn-warning');
+      submitButton.textContent = 'Yes, Disable';
+    } else {
+      message.innerHTML = `Do you want to <strong>enable</strong> section "<strong>${sectionName}</strong>"?`;
+      submitButton.classList.remove('btn-warning');
+      submitButton.classList.add('btn-success');
+      submitButton.textContent = 'Yes, Enable';
+    }
+  });
+</script>
+<script>
+  // Handle Delete Section Modal
+  const deleteModal = document.getElementById('deleteModal');
+  deleteModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const sectionId = button.getAttribute('data-section-id');
+    const sectionName = button.getAttribute('data-section-name');
+    document.getElementById('deleteSectionName').textContent = sectionName;
+    const form = document.getElementById('deleteForm');
+    form.action = `/delete_section/${sectionId}/`;
+  });
+
+  // Handle Delete Class Modal
+  const deleteClassModal = document.getElementById('deleteClassModal');
+  deleteClassModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const classId = button.getAttribute('data-class-id');
+    const className = button.getAttribute('data-class-name');
+    document.getElementById('deleteClassName').textContent = className;
+    const form = document.getElementById('deleteClassForm');
+    form.action = `/delete_class/${classId}/`;
+  });
+</script>
+</body>
+</html>
