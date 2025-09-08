@@ -1,10 +1,63 @@
-{% extends "students.html" %}
-
-{% block title %}
-  Delete / Disable Students
-{% endblock %}
-
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Students</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .sidebar { border-right: 1px solid #ddd; height: 100vh; padding-top: 30px; }
+    .sidebar a { display: block; padding: 10px 15px; color: #333; text-decoration: none; border-radius: 5px; margin-bottom: 5px; }
+    .sidebar a:hover, .sidebar a.active { background-color: #2bb3b3; color: #fff; }
+    
+    /* Custom checkbox styling */
+    .custom-checkbox { width: 20px; height: 20px; cursor: pointer; }
+    .custom-checkbox:checked { accent-color: #2bb3b3; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}" class="active">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+      
+      <!-- Main Content -->
+      <div class="col-md-10 p-5">
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+        
+        <div class="bg-white p-4 rounded shadow-sm">
+        <h3 class="mb-4"><i class="fas fa-users-cog"></i> Manage Students</h3>
   <!-- Filters Section -->
   <form method="GET" class="row g-3 mb-4">
     <div class="col-md-4">
@@ -55,7 +108,7 @@
           {% for stud in students %}
             <tr>
               <td>
-                <input type="checkbox" name="selected_students" value="{{ stud.id }}">
+                <input type="checkbox" name="selected_students" value="{{ stud.id }}" class="custom-checkbox">
               </td>
               <td>{{ stud.std_fname }} {{ stud.std_lname }}</td>
               <td>{{ stud.std_class.class_name }}</td>
@@ -103,4 +156,11 @@
       </button>
     </div>
   </form>
-{% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

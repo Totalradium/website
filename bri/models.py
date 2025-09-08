@@ -81,6 +81,8 @@ class Student(models.Model):
     discount_amount = models.IntegerField(help_text="Discount amount in PKR")
     is_active = models.BooleanField(default=True)
     profile_picture = models.ImageField(upload_to='student_pics/', blank=True, null=True)
+    bform = models.CharField(max_length=20, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('std_class', 'std_roll')
@@ -229,7 +231,7 @@ class Test(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.session.name} - {self.subject} ({self.test_name})"
+        return f"{self.test_name} - {self.subject}"
 
 class StudentTestResult(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -284,14 +286,7 @@ class FeePayment(models.Model):
     def __str__(self):
         return f"{self.student_fee.student} paid PKR {self.amount_paid} on {self.payment_date}"
 
-class WhatsappMessage(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    message = models.TextField()
-    sent_at = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20, blank=True)
 
-    def __str__(self):
-        return f"Message to {self.student} at {self.sent_at}"
 
 class AttendanceNotification(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE)
@@ -371,3 +366,20 @@ class PromoteBatchForm(forms.Form):
     source_section = forms.ModelChoiceField(queryset=Section.objects.none(), label="From Section")
     target_class = forms.ModelChoiceField(queryset=Class.objects.filter(is_active=True), label="To Class")
     target_section = forms.ModelChoiceField(queryset=Section.objects.none(), label="To Section")
+
+# -----------------------
+# WHATSAPP MESSAGE
+# -----------------------
+class WhatsAppMessage(models.Model):
+    STATUS_CHOICES = [
+        ('sent', 'Sent'),
+        ('delivered', 'Delivered'),
+        ('failed', 'Failed'),
+    ]
+    message = models.TextField()
+    phone_number = models.CharField(max_length=20)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='sent')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.phone_number} - {self.status}"

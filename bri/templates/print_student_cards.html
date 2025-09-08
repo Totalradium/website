@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Print Student ID Cards</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .form-section { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); }
+    .sidebar { border-right: 1px solid #ddd; height: 100vh; padding-top: 30px; }
+    .sidebar a { display: block; padding: 10px 15px; color: #333; text-decoration: none; border-radius: 5px; margin-bottom: 5px; }
+    .sidebar a:hover, .sidebar a.active { background-color: #2bb3b3; color: #fff; }
+    .form-title { font-weight: bold; margin-bottom: 25px; color: #2bb3b3; }
+    
+    /* ID Card Styles - A4 optimized (8 cards per page) */
+    .id-card { 
+      width: 85mm; 
+      height: 54mm; 
+      border: 2px solid #2bb3b3; 
+      border-radius: 8px; 
+      padding: 8px; 
+      margin: 5mm; 
+      background: white;
+      color: black;
+      display: inline-block;
+      page-break-inside: avoid;
+      vertical-align: top;
+      box-sizing: border-box;
+    }
+    .id-card .school-name { font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 3px; line-height: 1.2; }
+    .id-card .student-info { font-size: 10px; line-height: 1.3; }
+    .id-card .barcode { text-align: center; margin-top: 3px; }
+    .id-card .barcode img { width: 100%; height: 30px; }
+    .id-card .student-photo { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
+    .id-card .institute-logo { width: 70px; height: 70px; object-fit: contain; }
+    .id-card .demo-text { background: #f8f9fa; padding: 2px 5px; border-radius: 3px; margin: 2px 0; border: 1px solid #e9ecef; }
+    
+    @media print {
+      body { margin: 0; }
+      .no-print { display: none !important; }
+      .id-card { margin: 5px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar no-print">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}" class="active">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-md-10 p-5">
+        <div class="form-section no-print">
+          <h3 class="form-title"><i class="fas fa-id-card"></i> Print Student ID Cards</h3>
+          
+          <form method="GET" class="row g-3 mb-4">
+            <div class="col-md-4">
+              <label for="class_id" class="form-label">Class</label>
+              <select name="class_id" id="class_id" class="form-control">
+                <option value="">-- All Classes --</option>
+                {% for class in classes %}
+                  <option value="{{ class.id }}" {% if selected_class_id == class.id|stringformat:"s" %}selected{% endif %}>
+                    {{ class.class_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="section_id" class="form-label">Section</label>
+              <select name="section_id" id="section_id" class="form-control">
+                <option value="">-- All Sections --</option>
+              </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary me-2">Load Students</button>
+              {% if students %}
+                <button type="button" class="btn btn-success" onclick="printSelected()">Print Selected</button>
+              {% endif %}
+            </div>
+          </form>
+          
+          {% if students %}
+          <div class="no-print mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6>Select Students to Print:</h6>
+              <div>
+                <button class="btn btn-sm btn-outline-primary" onclick="selectAll()">Select All</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick="selectNone()">Select None</button>
+              </div>
+            </div>
+            <div class="row mt-2">
+              {% for student in students %}
+              <div class="col-md-3 mb-2">
+                <button class="btn btn-outline-success btn-sm w-100 student-btn" data-student-id="{{ student.id }}" onclick="toggleStudent(this)">
+                  <i class="fas fa-check me-1"></i>
+                  {{ student.std_fname }} {{ student.std_lname }} ({{ student.std_roll }})
+                </button>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- ID Cards -->
+        {% if students %}
+          <div class="text-center no-print mb-3">
+            <h5>{{ students|length }} ID Cards Ready for Printing</h5>
+          </div>
+          
+          {% for student in students %}
+            <div class="id-card" id="card-{{ student.id }}">
+              <div style="text-align: center; margin-bottom: 8px;">
+                <img src="{% static 'logo_renewed.png' %}" class="institute-logo" alt="Logo">
+              </div>
+              <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                <div style="text-align: center;">
+                  {% if student.profile_picture %}
+                    <img src="{{ student.profile_picture.url }}" class="student-photo">
+                  {% else %}
+                    <div class="student-photo" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 8px; color: #666;">
+                      {{ student.std_fname|first }}{{ student.std_lname|first }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="student-info" style="flex: 1;">
+                  <div class="demo-text"><strong>{{ student.std_fname }} {{ student.std_lname }}</strong></div>
+                  <div class="demo-text">Roll: {{ student.std_roll }}</div>
+                  <div class="demo-text">{{ student.std_class.class_name }}-{{ student.std_section.std_section }}</div>
+                </div>
+              </div>
+              <div class="barcode" style="text-align: center;">
+                <img src="data:image/png;base64,{{ student.barcode_data }}" alt="Barcode" style="max-width: 120px; height: 30px;">
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('class_id').addEventListener('change', function() {
+      const classId = this.value;
+      const sectionSelect = document.getElementById('section_id');
+      
+      sectionSelect.innerHTML = '<option value="">-- All Sections --</option>';
+      
+      if (classId) {
+        fetch(`/get_sections_for_class/${classId}/?include_all=true`)
+          .then(response => response.json())
+          .then(data => {
+            data.sections.forEach(section => {
+              const option = document.createElement('option');
+              option.value = section.id;
+              option.text = section.std_section;
+              sectionSelect.appendChild(option);
+            });
+          });
+      } else {
+        fetch('/get_all_sections/?include_all=true')
+          .then(response => response.json())
+          .then(data => {
+            data.sections.forEach(section => {
+              const option = document.createElement('option');
+              option.value = section.id;
+              option.text = section.std_section;
+              sectionSelect.appendChild(option);
+            });
+          });
+      }
+    });
+    
+    function toggleStudent(btn) {
+      if (btn.classList.contains('btn-outline-success')) {
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-outline-secondary');
+        btn.querySelector('i').classList.remove('fa-check');
+        btn.querySelector('i').classList.add('fa-times');
+      } else {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-outline-success');
+        btn.querySelector('i').classList.remove('fa-times');
+        btn.querySelector('i').classList.add('fa-check');
+      }
+    }
+    
+    function selectAll() {
+      document.querySelectorAll('.student-btn').forEach(btn => {
+        btn.classList.remove('btn-outline-secondary');
+        btn.classList.add('btn-outline-success');
+        btn.querySelector('i').classList.remove('fa-times');
+        btn.querySelector('i').classList.add('fa-check');
+      });
+    }
+    
+    function selectNone() {
+      document.querySelectorAll('.student-btn').forEach(btn => {
+        btn.classList.remove('btn-outline-success');
+        btn.classList.add('btn-outline-secondary');
+        btn.querySelector('i').classList.remove('fa-check');
+        btn.querySelector('i').classList.add('fa-times');
+      });
+    }
+    
+    function printSelected() {
+      // Hide unselected cards
+      document.querySelectorAll('.id-card').forEach(card => {
+        const studentId = card.id.replace('card-', '');
+        const btn = document.querySelector(`[data-student-id="${studentId}"]`);
+        if (btn.classList.contains('btn-outline-secondary')) {
+          card.style.display = 'none';
+        } else {
+          card.style.display = 'inline-block';
+        }
+      });
+      
+      // Print
+      window.print();
+      
+      // Show all cards again
+      document.querySelectorAll('.id-card').forEach(card => {
+        card.style.display = 'inline-block';
+      });
+    }
+  </script>
+</body>
+</html>

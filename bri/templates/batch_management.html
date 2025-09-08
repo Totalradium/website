@@ -72,7 +72,7 @@
         <a href="{% url 'studentss' %}">Students</a>
         <a href="{% url 'add_teacher' %}">Teachers</a>
         <a href="{% url 'fee_dashboard' %}">Fee Section</a>
-        <a href="{% url 'attendance_home' %}">Attendance</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
         <a href="{% url 'test_management' %}">Test Management</a>
         <a href="{% url 'add_user' %}">Users</a>
         <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
@@ -88,9 +88,7 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="form-title">Class and Section Management</h3>
             <div>
-              <a href="{% url 'batch_management' %}" class="btn btn-sm btn-outline-secondary me-2">Add Class</a>
-              <a href="{% url 'promote_batch' %}" class="btn btn-sm btn-outline-success me-2">Promote Class</a>
-              <a href="{% url 'logout_view' %}" class="btn btn-sm btn-outline-danger">Logout</a>
+              <a href="{% url 'promote_batch' %}" class="btn btn-sm btn-outline-success">Promote Class</a>
             </div>
           </div>
           {% if messages %}
@@ -191,6 +189,15 @@
                   data-section-name="{{ sec.std_section }}">
             Delete
           </button>
+          {% if forloop.first %}
+          <button class="btn btn-sm btn-outline-danger ms-1"
+                  data-bs-toggle="modal"
+                  data-bs-target="#deleteClassModal"
+                  data-class-id="{{ cls.id }}"
+                  data-class-name="{{ cls.class_name }}">
+            Delete Class
+          </button>
+          {% endif %}
         </td>
       </tr>
     {% endfor %}
@@ -210,6 +217,72 @@
     </form>
   </div>
 </div>
+  <!-- Delete Section Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteModalLabel">Delete Section</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete section "<strong id="deleteSectionName"></strong>"? This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Class Modal -->
+  <div class="modal fade" id="deleteClassModal" tabindex="-1" aria-labelledby="deleteClassModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteClassModalLabel">Delete Class</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete class "<strong id="deleteClassName"></strong>" and all its sections? This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteClassForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete Class</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toggle Modal -->
+  <div class="modal fade" id="toggleModal" tabindex="-1" aria-labelledby="toggleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="toggleModalLabel">Toggle Section Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="toggleModalMessage"></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="toggleForm" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" id="toggleSubmitButton" class="btn">Confirm</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap + JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
@@ -287,17 +360,26 @@
   });
 </script>
 <script>
-  // Handle Delete Modal
+  // Handle Delete Section Modal
   const deleteModal = document.getElementById('deleteModal');
   deleteModal.addEventListener('show.bs.modal', function (event) {
     const button = event.relatedTarget;
     const sectionId = button.getAttribute('data-section-id');
     const sectionName = button.getAttribute('data-section-name');
-    // Set section name in modal text
     document.getElementById('deleteSectionName').textContent = sectionName;
-    // Set form action to the correct URL
     const form = document.getElementById('deleteForm');
-    form.action = `/delete_section/${sectionId}/`; // Make sure this URL matches your Django URL pattern
+    form.action = `/delete_section/${sectionId}/`;
+  });
+
+  // Handle Delete Class Modal
+  const deleteClassModal = document.getElementById('deleteClassModal');
+  deleteClassModal.addEventListener('show.bs.modal', function (event) {
+    const button = event.relatedTarget;
+    const classId = button.getAttribute('data-class-id');
+    const className = button.getAttribute('data-class-name');
+    document.getElementById('deleteClassName').textContent = className;
+    const form = document.getElementById('deleteClassForm');
+    form.action = `/delete_class/${classId}/`;
   });
 </script>
 </body>

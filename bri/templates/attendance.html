@@ -78,8 +78,8 @@
         <a href="{% url 'attendance_dashboard' %}" class="active">Attendance</a>
         <a href="{% url 'test_management' %}">Test Management</a>
         <a href="{% url 'add_user' %}">Users</a>
-        <a href="#">WhatsApp</a>
-        <a href="#">Reports</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
         <a href="{% url 'batch_management' %}">Batch Management</a>
         <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
         <hr>
@@ -217,7 +217,7 @@
       sectionSelect.innerHTML = '<option value="">-- Select Section --</option>';
       
       if (classId) {
-        fetch(`/get_sections_for_class/${classId}/`)
+        fetch(`/get_sections_for_class/${classId}/?include_all=true`)
           .then(response => response.json())
           .then(data => {
             data.sections.forEach(section => {
@@ -226,7 +226,21 @@
               option.text = section.std_section;
               sectionSelect.appendChild(option);
             });
+            
+            // Preserve selected section if available
+            const selectedSectionId = '{{ selected_section_id }}';
+            if (selectedSectionId) {
+              sectionSelect.value = selectedSectionId;
+            }
           });
+      }
+    });
+    
+    // Load sections for initially selected class
+    window.addEventListener('load', function() {
+      const classSelect = document.getElementById('class_id');
+      if (classSelect.value) {
+        classSelect.dispatchEvent(new Event('change'));
       }
     });
   </script>

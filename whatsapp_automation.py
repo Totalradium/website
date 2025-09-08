@@ -97,26 +97,43 @@ class WhatsAppBot:
             url = f"https://web.whatsapp.com/send?phone={clean_phone}&text={encoded_message}"
             
             self.driver.get(url)
-            time.sleep(random.uniform(5, 8))  # Increased wait for chat loading
+            
+            # Wait for message input box to appear
+            try:
+                message_box = self.wait.until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'div[contenteditable="true"][data-tab="10"]')))
+            except:
+                # Fallback selector
+                message_box = self.wait.until(EC.presence_of_element_located(
+                    (By.CSS_SELECTOR, 'div[contenteditable="true"]')))
+            
+            time.sleep(random.uniform(2, 3))
             
             # Try multiple send button selectors
-            send_btn = None
-            try:
-                # New WhatsApp send button
-                send_btn = self.wait.until(EC.element_to_be_clickable((By.XPATH, '//button[@aria-label="Send"]')))
-            except:
-                try:
-                    # Alternative selector
-                    send_btn = self.wait.until(EC.element_to_be_clickable((By.XPATH, '//span[@data-icon="wds-ic-send-filled"]')))
-                except:
-                    # Fallback selector
-                    send_btn = self.wait.until(EC.element_to_be_clickable((By.XPATH, '//span[@data-icon="send"]')))
+            send_selectors = [
+                'button[aria-label="Send"]',
+                'span[data-icon="send"]',
+                'button[data-tab="11"]',
+                'span[data-testid="send"]'
+            ]
             
-            time.sleep(random.uniform(2, 3))  # Extra wait before clicking
-            send_btn.click()
+            sent = False
+            for selector in send_selectors:
+                try:
+                    send_btn = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+                    send_btn.click()
+                    sent = True
+                    break
+                except:
+                    continue
+            
+            if not sent:
+                # Fallback to Enter key
+                from selenium.webdriver.common.keys import Keys
+                message_box.send_keys(Keys.ENTER)
             
             print(f"✅ Message sent to {phone}")
-            time.sleep(random.uniform(3, 5))  # Longer wait after sending
+            time.sleep(random.uniform(3, 5))
             return True
             
         except Exception as e:

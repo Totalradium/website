@@ -65,19 +65,25 @@
       <div class="col-md-2 sidebar">
         <div class="text-center mb-4">
           {% load static %}
-          <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
-          <h5>Abdullah</h5>
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
         </div>
         <a href="{% url 'studentss' %}">Students</a>
-        <a href="{% url 'list_students' %}">Teachers</a>
+        <a href="{% url 'add_teacher' %}" class="active">Teachers</a>
         <a href="{% url 'fee_dashboard' %}">Fee Section</a>
-        <a href="{% url 'attendance_home' %}">Attendance</a>
-        <a href="#">Exam Management</a>
-        <a href="#">Users</a>
-        <a href="#">WhatsApp</a>
-        <a href="#">Reports</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
         <a href="{% url 'batch_management' %}">Batch Management</a>
         <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
       </div>
 
       <!-- Main Form Area -->

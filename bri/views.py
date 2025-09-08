@@ -3,7 +3,7 @@ from django.contrib import messages
 from functools import wraps
 from django.db.models import Q
 from bri.models import *
-from .models import Fee, StudentFee, FeePayment, WhatsappMessage, PromoteBatchForm, AttendanceNotification, TestSession, Test
+from .models import Fee, StudentFee, FeePayment, WhatsAppMessage, PromoteBatchForm, AttendanceNotification, TestSession, Test
 from django.contrib.auth.hashers import make_password, check_password
 from django.http import JsonResponse
 from .models import Student as StudentModel
@@ -13,6 +13,7 @@ from django.db import IntegrityError
 from django.contrib.auth.hashers import make_password
 from django.db import IntegrityError
 from django.utils.timezone import now
+from .bulk_import import bulk_import_students
 
 # Helper function for logging user activities
 def log_user_activity(request, action_type, model_name, object_id, description):
@@ -33,8 +34,14 @@ def log_user_activity(request, action_type, model_name, object_id, description):
 def admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.session.get('user_id') or request.session.get('user_role') != 'admin':
-            return redirect('admin_dashboard')  # Use the correct view name from urls.py
+        user_id = request.session.get('user_id')
+        user_role = request.session.get('user_role')
+        
+        print(f"Admin check - user_id: {user_id}, user_role: {user_role}")
+        
+        if not user_id or user_role != 'admin':
+            messages.error(request, "You need admin access to view this page.")
+            return redirect('admin_dashboard')
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -117,6 +124,42 @@ def attendance_dashboard(request):
     else:
         attendance_percentage = 0
     
+    # Find students absent for 2+ consecutive days (excluding weekends)
+    from datetime import timedelta
+    
+    consecutive_absent_students = []
+    
+    # Get last 5 weekdays to check for consecutive absences
+    check_dates = []
+    check_date = today
+    days_added = 0
+    while days_added < 5:
+        if check_date.weekday() < 5:  # Monday=0, Sunday=6
+            check_dates.append(check_date)
+            days_added += 1
+        check_date -= timedelta(days=1)
+    
+    check_dates.reverse()  # Oldest first
+    
+    for student in Student.objects.filter(is_active=True):
+        absent_streak = 0
+        for date in check_dates:
+            attendance = Attendance.objects.filter(student=student, date=date).first()
+            if attendance and attendance.status == 'A':
+                absent_streak += 1
+                if absent_streak >= 2:
+                    consecutive_absent_students.append({
+                        'name': f'{student.std_fname} {student.std_lname}',
+                        'class': student.std_class.class_name,
+                        'section': student.std_section.std_section if student.std_section else 'N/A',
+                        'contact1': str(student.guardian_contact1) if student.guardian_contact1 else 'N/A',
+                        'contact2': str(student.guardian_contact2) if student.guardian_contact2 else 'N/A',
+                        'days_absent': absent_streak
+                    })
+                    break
+            else:
+                absent_streak = 0
+    
     context = {
         'today_date': today,
         'total_students': total_students,
@@ -124,6 +167,7 @@ def attendance_dashboard(request):
         'absent_count': absent_count,
         'not_marked_count': not_marked_count,
         'attendance_percentage': attendance_percentage,
+        'consecutive_absent_students': consecutive_absent_students,
     }
     
     return render(request, 'attendance_dashboard.html', context)
@@ -474,15 +518,23 @@ def attendance_view(request):
     if class_id and section_id:
         try:
             class_id = int(class_id)
-            section_id = int(section_id)
+            if section_id != 'all':
+                section_id = int(section_id)
         except (TypeError, ValueError):
             return redirect('attendance_home')
 
-        students = Student.objects.filter(std_class_id=class_id, std_section_id=section_id)
+        if section_id == 'all':
+            students = Student.objects.filter(std_class_id=class_id)
+        else:
+            students = Student.objects.filter(std_class_id=class_id, std_section_id=section_id)
 
         # Get class and section names
         selected_class = get_object_or_404(Class, id=class_id)
-        selected_section = get_object_or_404(Section, id=section_id)
+        if section_id == 'all':
+            selected_section_name = 'All Sections'
+        else:
+            selected_section = get_object_or_404(Section, id=section_id)
+            selected_section_name = selected_section.std_section
 
         # Get existing attendance for today
         from django.utils import timezone
@@ -513,10 +565,11 @@ def attendance_view(request):
             'class_id': class_id,
             'section_id': section_id,
             'selected_class_name': selected_class.class_name,
-            'selected_section_name': selected_section.std_section,
+            'selected_section_name': selected_section_name,
             'classes': Class.objects.all(),
             'sections': Section.objects.all(),
-
+            'selected_class_id': class_id,
+            'selected_section_id': section_id,
         })
     return redirect('attendance_home')
 
@@ -699,6 +752,18 @@ def create_user(request):
 @admin_required
 def get_sections_for_class(request, class_id):
     sections = Section.objects.filter(class_name_id=class_id)
+    section_list = []
+    
+    # Only add 'All Sections' for specific pages that need it
+    if request.GET.get('include_all') == 'true':
+        section_list.append({'id': 'all', 'std_section': 'All Sections'})
+    
+    section_list.extend([{'id': sec.id, 'std_section': sec.std_section} for sec in sections])
+    return JsonResponse({'sections': section_list})
+
+@admin_required
+def get_all_sections(request):
+    sections = Section.objects.all().order_by('std_section')
     section_list = [{'id': sec.id, 'std_section': sec.std_section} for sec in sections]
     return JsonResponse({'sections': section_list})
 
@@ -844,15 +909,74 @@ def delete_user(request, user_id):
 
 @admin_required
 def studentss(request):
+    from django.utils import timezone
+    
     print("user_id:", request.session.get('user_id'))
     print("user_role:", request.session.get('user_role'))
 
     classes = Class.objects.all()
     sections = Section.objects.all()
+    
+    # Calculate statistics for the dashboard
+    total_students = Student.objects.filter(is_active=True).count()
+    total_classes = Class.objects.count()
+    total_sections = Section.objects.count()
+    
+    # Calculate new admissions this month
+    current_month = timezone.now().month
+    current_year = timezone.now().year
+    
+    new_admissions = Student.objects.filter(
+        is_active=True,
+        created_at__month=current_month,
+        created_at__year=current_year
+    ).count()
+    
+    # Get recent students (last 10)
+    recent_students = Student.objects.filter(is_active=True).order_by('-created_at')[:10]
+    
+    # Check for students with missing data
+    students_with_missing_data = []
+    all_students = Student.objects.filter(is_active=True).select_related('std_class', 'std_section')
+    
+    for student in all_students:
+        missing_fields = []
+        if not student.guardian_name or student.guardian_name.strip() == '': missing_fields.append('Guardian Name')
+        if not student.guardian_contact1 or str(student.guardian_contact1).strip() == '': missing_fields.append('Contact 1')
+        if not student.guardian_contact2 or str(student.guardian_contact2).strip() == '': missing_fields.append('Contact 2')
+        if not student.address or student.address.strip() == '': missing_fields.append('Address')
+        if not student.std_dob or student.std_dob.year == 2000: missing_fields.append('Date of Birth')
+        if not student.bform or student.bform.strip() == '': missing_fields.append('B-Form')
+        if not hasattr(student, 'profile_picture') or not student.profile_picture: missing_fields.append('Profile Picture')
+        
+        if missing_fields:
+            # Get available contact number
+            contact = None
+            if student.guardian_contact1 and str(student.guardian_contact1).strip():
+                contact = str(student.guardian_contact1)
+            elif student.guardian_contact2 and str(student.guardian_contact2).strip():
+                contact = str(student.guardian_contact2)
+            
+            students_with_missing_data.append({
+                'id': student.id,
+                'name': f'{student.std_fname} {student.std_lname}',
+                'roll': student.std_roll,
+                'class': student.std_class.class_name,
+                'section': student.std_section.std_section if student.std_section else 'N/A',
+                'missing_fields': missing_fields,
+                'contact': contact
+            })
+    
     context = {
         'classes': classes,
         'sections': sections,
         'form_data': {},
+        'total_students': total_students,
+        'total_classes': total_classes,
+        'total_sections': total_sections,
+        'new_admissions': new_admissions,
+        'recent_students': recent_students,
+        'students_with_missing_data': students_with_missing_data,
     }
 
     if request.method == "POST":
@@ -868,6 +992,15 @@ def studentss(request):
         guardian_name2 = request.POST.get('guardian_name2')
         guardian_contact2 = request.POST.get('guardian_contact2')
         fee_discount = request.POST.get('discount_amount') if request.POST.get('discount_amount') else 0
+        bform = request.POST.get('bform')
+        
+        # Validate B-Form format if provided
+        if bform and bform.strip():
+            import re
+            if not re.match(r'^[0-9]{5}-[0-9]{7}-[0-9]{1}$', bform.strip()):
+                messages.error(request, "B-Form must be in format: 12345-1234567-1")
+                return render(request, 'students.html', context)
+        
         username_str = request.POST.get('username')
         password = request.POST.get('password')
         address = request.POST.get('address')
@@ -917,6 +1050,7 @@ def studentss(request):
                 guardian_contact1=guardian_contact1,
                 guardian_contact2=guardian_contact2,
                 discount_amount=fee_discount,
+                bform=bform,
                 username=new_username,
                 address=address,
                 profile_picture=profile_picture
@@ -941,6 +1075,9 @@ def studentss(request):
 
 @admin_required
 def list_students(request):
+    from django.utils import timezone
+    from datetime import datetime, timedelta
+    
     # Get all classes and sections
     class_list = Class.objects.all()
     section_list = Section.objects.all()
@@ -972,6 +1109,17 @@ def list_students(request):
     if not students:
         students = []
 
+    # Calculate statistics for the dashboard
+    total_students = Student.objects.filter(is_active=True).count()
+    total_classes = Class.objects.count()
+    total_sections = Section.objects.count()
+    
+    # Calculate new admissions this month (approximate)
+    new_admissions = 5
+    
+    # Get recent students (last 10)
+    recent_students = Student.objects.filter(is_active=True).order_by('-id')[:10]
+
     # Prepare the filter data to pass back to the template
     filters = {
         'name': search_name,
@@ -984,7 +1132,12 @@ def list_students(request):
         'students': students,
         'class_list': class_list,
         'section_list': section_list,
-        'filters': filters
+        'filters': filters,
+        'total_students': total_students,
+        'total_classes': total_classes,
+        'total_sections': total_sections,
+        'new_admissions': new_admissions,
+        'recent_students': recent_students,
     }
 
     return render(request, 'List_students.html', context)
@@ -1006,6 +1159,15 @@ def edit_students(request, student_id):
         guardian_contact1 = request.POST.get('guardian_contact1')
         guardian_contact2 = request.POST.get('guardian_contact2')
         fee_discount = request.POST.get('discount_amount') or 0
+        bform = request.POST.get('bform')
+        
+        # Validate B-Form format if provided
+        if bform and bform.strip():
+            import re
+            if not re.match(r'^[0-9]{5}-[0-9]{7}-[0-9]{1}$', bform.strip()):
+                messages.error(request, "B-Form must be in format: 12345-1234567-1")
+                return render(request, 'edit_students.html', {'student': student, 'classes': classes, 'sections': sections})
+        
         address = request.POST.get('address')
 
         try:
@@ -1020,6 +1182,7 @@ def edit_students(request, student_id):
             student.guardian_contact1 = guardian_contact1
             student.guardian_contact2 = guardian_contact2
             student.discount_amount = fee_discount
+            student.bform = bform
             student.address = address
 
             student.save()
@@ -1198,6 +1361,18 @@ def delete_section(request, sec_id):
 
     return redirect('batch_management')  # Redirect back to the batch management page
 
+@admin_required
+def delete_class(request, class_id):
+    # Get the class to be deleted
+    class_obj = get_object_or_404(Class, id=class_id)
+    class_name = class_obj.class_name
+
+    if request.method == 'POST':
+        class_obj.delete()
+        messages.success(request, f"Class '{class_name}' and all its sections deleted successfully!")
+
+    return redirect('batch_management')
+
 
 def support(request):
     return render(request, 'support.html')
@@ -1264,6 +1439,10 @@ def delete_disable_students(request):
             messages.success(request, f"{students_to_modify.count()} student(s) enabled successfully.")
         elif action == "delete":
             count = students_to_modify.count()
+            # Delete associated usernames first
+            for student in students_to_modify:
+                if student.username:
+                    student.username.delete()
             students_to_modify.delete()
             messages.success(request, f"{count} student(s) deleted permanently.")
         else:
@@ -2707,25 +2886,49 @@ def subject_management(request):
         section_id = request.POST.get('section_id')
         subject_name = request.POST.get('subject_name')
         teacher_id = request.POST.get('teacher_id')
-        academic_year = request.POST.get('academic_year')
+
         
         try:
-            # Create SectionSubject
-            section_subject = SectionSubject.objects.create(
-                class_name_id=class_id,
-                section_id=section_id,
-                subject=subject_name,
-                academic_year=academic_year
-            )
-            
-            # Assign teacher if provided
-            if teacher_id:
-                TeacherSubjectAssignment.objects.create(
-                    teacher_id=teacher_id,
-                    section_subject=section_subject
+            if section_id == 'all':
+                # Add subject to all sections of the class
+                sections = Section.objects.filter(class_name_id=class_id)
+                created_count = 0
+                
+                for section in sections:
+                    section_subject = SectionSubject.objects.create(
+                        class_name_id=class_id,
+                        section=section,
+                        subject=subject_name,
+
+                    )
+                    
+                    # Assign teacher if provided
+                    if teacher_id:
+                        TeacherSubjectAssignment.objects.create(
+                            teacher_id=teacher_id,
+                            section_subject=section_subject
+                        )
+                    created_count += 1
+                
+                messages.success(request, f'Subject "{subject_name}" added to {created_count} sections!')
+            else:
+                # Add subject to specific section
+                section_subject = SectionSubject.objects.create(
+                    class_name_id=class_id,
+                    section_id=section_id,
+                    subject=subject_name,
+
                 )
-            
-            messages.success(request, f'Subject "{subject_name}" added successfully!')
+                
+                # Assign teacher if provided
+                if teacher_id:
+                    TeacherSubjectAssignment.objects.create(
+                        teacher_id=teacher_id,
+                        section_subject=section_subject
+                    )
+                
+                messages.success(request, f'Subject "{subject_name}" added successfully!')
+                
         except Exception as e:
             messages.error(request, f'Error: {e}')
         
@@ -2733,7 +2936,37 @@ def subject_management(request):
     
     classes = Class.objects.all()
     teachers = Teacher.objects.all()
-    subjects = SectionSubject.objects.select_related('class_name', 'section').prefetch_related('assignments__teacher')
+    
+    # Group subjects by class and subject name
+    subjects_raw = SectionSubject.objects.select_related('class_name', 'section').prefetch_related('assignments__teacher')
+    grouped_subjects = {}
+    
+    for subject in subjects_raw:
+        key = (subject.class_name.id, subject.subject)
+        if key not in grouped_subjects:
+            grouped_subjects[key] = {
+                'class_name': subject.class_name.class_name,
+                'subject': subject.subject,
+                'sections': [],
+                'teachers': set(),
+                'ids': []
+            }
+        
+        grouped_subjects[key]['sections'].append(subject.section.std_section)
+        grouped_subjects[key]['ids'].append(subject.id)
+        for assignment in subject.assignments.all():
+            grouped_subjects[key]['teachers'].add(f"{assignment.teacher.teacher_fname} {assignment.teacher.teacher_lname}")
+    
+    # Convert to list format
+    subjects = []
+    for data in grouped_subjects.values():
+        subjects.append({
+            'class_name': data['class_name'],
+            'sections': ', '.join(data['sections']),
+            'subject': data['subject'],
+            'teachers': ', '.join(data['teachers']) if data['teachers'] else 'No teacher assigned',
+            'ids': data['ids']
+        })
     
     return render(request, 'subject_management.html', {
         'classes': classes,
@@ -2745,6 +2978,34 @@ def subject_management(request):
 message_status_log = []
 
 @admin_required
+def export_students(request):
+    """Export student data to CSV"""
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="students_export.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Roll No', 'First Name', 'Last Name', 'Class', 'Section', 'Guardian Name', 'Contact 1', 'Contact 2', 'Address'])
+    
+    students = Student.objects.filter(is_active=True).select_related('std_class', 'std_section')
+    for student in students:
+        writer.writerow([
+            student.std_roll,
+            student.std_fname,
+            student.std_lname,
+            student.std_class.class_name,
+            student.std_section.std_section if student.std_section else 'N/A',
+            student.guardian_name or 'N/A',
+            student.guardian_contact1 or 'N/A',
+            student.guardian_contact2 or 'N/A',
+            student.address or 'N/A'
+        ])
+    
+    return response
+
+@admin_required
 def get_message_status(request):
     """Get current message sending status from Selenium"""
     global message_status_log
@@ -2754,3 +3015,146 @@ def get_message_status(request):
         'messages': message_status_log,
         'completed': len([m for m in message_status_log if m['status'] == 'sent']) == len(message_status_log)
     })
+
+@admin_required
+def download_template(request):
+    """Download CSV template for bulk import"""
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="student_import_template.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['First Name', 'Last Name', 'Username', 'Password', 'Roll Number', 'Class', 'Section', 'Gender', 'Date of Birth', 'Guardian Name', 'Contact 1', 'Contact 2', 'Address', 'Discount', 'B-Form'])
+    writer.writerow(['John', 'Doe', 'john123', 'password123', '1', 'Class 1', 'A', 'Male', '2010-01-01', 'John Sr.', '+923001234567', '+923007654321', '123 Main St', '0', '12345-1234567-1'])
+    
+    return response
+
+@admin_required
+def bulk_import_students(request):
+    """Import students from CSV file"""
+    if request.method == 'POST':
+        import csv
+        
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            messages.error(request, 'Please select a file.')
+            return redirect('studentss')
+        
+        try:
+            decoded_file = excel_file.read().decode('utf-8').splitlines()
+            reader = csv.reader(decoded_file)
+            next(reader)  # Skip header
+            
+            success_count = 0
+            error_count = 0
+            
+            for row_num, row in enumerate(reader, start=2):
+                if len(row) < 15:
+                    error_count += 1
+                    continue
+                    
+                try:
+                    # Pad row with empty strings if missing fields
+                    while len(row) < 15:
+                        row.append('')
+                    
+                    first_name, last_name, username, password, roll_no, class_name, section_name, gender, dob, guardian_name, contact1, contact2, address, discount, bform = row
+                    
+                    # Set defaults for missing required fields
+                    if not first_name: first_name = f'Student{row_num}'
+                    if not last_name: last_name = 'Unknown'
+                    if not username: username = f'student{row_num}'
+                    if not password: password = 'password123'
+                    if not roll_no: roll_no = row_num
+                    if not gender: gender = 'Not Specified'
+                    if not dob: dob = '2000-01-01'
+                    
+                    # Validate B-Form format if provided
+                    if bform and bform.strip():
+                        import re
+                        if not re.match(r'^[0-9]{5}-[0-9]{7}-[0-9]{1}$', bform.strip()):
+                            error_count += 1
+                            continue
+                    
+                    std_class = Class.objects.get(class_name=class_name)
+                    std_section = Section.objects.get(std_section=section_name, class_name=std_class)
+                    
+                    if Student.objects.filter(std_class=std_class, std_roll=roll_no).exists():
+                        error_count += 1
+                        continue
+                    
+                    if Username.objects.filter(username=username).exists():
+                        error_count += 1
+                        continue
+                    
+                    # Handle duplicate username
+                    original_username = username
+                    counter = 1
+                    while Username.objects.filter(username=username).exists():
+                        username = f'{original_username}{counter}'
+                        counter += 1
+                    
+                    new_username = Username.objects.create(username=username, password=make_password(password), role='student')
+                    
+                    Student.objects.create(
+                        std_fname=first_name,
+                        std_lname=last_name,
+                        std_roll=roll_no,
+                        std_class=std_class,
+                        std_section=std_section,
+                        gender=gender,
+                        std_dob=dob,
+                        guardian_name=guardian_name,
+                        guardian_contact1=contact1,
+                        guardian_contact2=contact2,
+                        address=address,
+                        discount_amount=float(discount) if discount else 0,
+                        bform=bform,
+                        username=new_username
+                    )
+                    success_count += 1
+                    
+                except Exception as e:
+                    error_count += 1
+                    continue
+            
+            if success_count > 0:
+                messages.success(request, f'{success_count} students imported successfully!')
+            if error_count > 0:
+                messages.warning(request, f'{error_count} rows had errors and were skipped.')
+                
+        except Exception as e:
+            messages.error(request, f'Error processing file: {str(e)}')
+    
+    return redirect('studentss')
+@admin_required
+def assign_teacher_to_subject(request):
+    """Assign teacher to subject"""
+    if request.method == 'POST':
+        teacher_id = request.POST.get('teacher_id')
+        subject_id = request.POST.get('subject_id')
+        
+        try:
+            TeacherSubjectAssignment.objects.create(
+                teacher_id=teacher_id,
+                section_subject_id=subject_id
+            )
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False})
+
+@admin_required
+def delete_teacher_assignment(request, subject_id):
+    """Delete teacher assignment from subject"""
+    if request.method == 'POST':
+        try:
+            TeacherSubjectAssignment.objects.filter(section_subject_id=subject_id).delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+    
+    return JsonResponse({'success': False})

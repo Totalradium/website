@@ -75,7 +75,7 @@
         <a href="{% url 'studentss' %}">Students</a>
         <a href="{% url 'add_teacher' %}">Teachers</a>
         <a href="{% url 'fee_dashboard' %}">Fee Section</a>
-        <a href="{% url 'attendance_home' %}">Attendance</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
         <a href="{% url 'test_management' %}" class="active">Test Management</a>
         <a href="{% url 'add_user' %}">Users</a>
         <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
@@ -94,6 +94,9 @@
             <div>
               <a href="{% url 'test_management' %}" class="btn btn-sm btn-outline-secondary me-2">Back to Test Management</a>
               <a href="{% url 'select_tests_for_print' session.id %}" class="btn btn-sm btn-success">Print Result Cards</a>
+              <a href="{% url 'send_result_cards' session.id %}" class="btn btn-sm btn-primary ms-2">
+                <i class="fas fa-paper-plane me-1"></i>Send via WhatsApp
+              </a>
             </div>
           </div>
 

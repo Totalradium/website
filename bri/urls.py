@@ -2,6 +2,11 @@ from django.urls import path, include
 from bri import views
 from bri.whatsapp_views import send_test_message, automate_whatsapp_messages
 from bri.test_views import test_whatsapp_page, test_whatsapp_send
+from bri.barcode_views import barcode_attendance, print_student_cards
+from bri.result_views import send_result_cards
+from bri.missing_data_views import send_missing_data_message
+from bri.whatsapp_history_views import whatsapp_history
+
 from django.shortcuts import redirect
 
 urlpatterns = [
@@ -16,6 +21,7 @@ urlpatterns = [
     path('disable_batch/', views.disable_batch, name='disable_batch'),  # Disable batch
     path('update_section/<int:sec_id>/', views.update_section, name='update_section'),  # Add this line for updating sections
     path('delete_section/<int:sec_id>/', views.delete_section, name='delete_section'),
+    path('delete_class/<int:class_id>/', views.delete_class, name='delete_class'),
     path('get_sections_for_class/<int:class_id>/', views.get_sections_for_class, name='get_sections_for_class'),
     path('get_students_for_section/<int:class_id>/<int:section_id>/', views.get_students_for_section, name='get_students_for_section'),
     path('create_user/', views.create_user, name='create_user'),
@@ -72,10 +78,13 @@ urlpatterns = [
     path('session_detail/<int:session_id>/', views.session_detail, name='session_detail'),
     path('enter_marks/<int:test_id>/', views.enter_marks, name='enter_marks'),
     path('print_result_cards/<int:session_id>/', views.print_result_cards, name='print_result_cards'),
+    path('send_result_cards/<int:session_id>/', send_result_cards, name='send_result_cards'),
     path('get_subjects_for_session/<int:class_id>/<int:section_id>/', views.get_subjects_for_session, name='get_subjects_for_session'),
     path('subject_management/', views.subject_management, name='subject_management'),
     path('delete_subject/<int:subject_id>/', views.delete_subject, name='delete_subject'),
     path('update_subject/<int:subject_id>/', views.update_subject, name='update_subject'),
+    path('assign_teacher_to_subject/', views.assign_teacher_to_subject, name='assign_teacher_to_subject'),
+    path('delete_teacher_assignment/<int:subject_id>/', views.delete_teacher_assignment, name='delete_teacher_assignment'),
     path('move_class/<int:class_id>/<str:direction>/', views.move_class, name='move_class'),
     path('toggle_teacher/<int:teacher_id>/', views.toggle_teacher, name='toggle_teacher'),
     path('edit_test_session/<int:session_id>/', views.edit_test_session, name='edit_test_session'),
@@ -83,7 +92,15 @@ urlpatterns = [
     path('delete_test/<int:test_id>/', views.delete_test, name='delete_test'),
     path('select_tests_for_print/<int:session_id>/', views.select_tests_for_print, name='select_tests_for_print'),
     path('get_message_status/', views.get_message_status, name='get_message_status'),
-    
-    # Reports URLs
+    path('export_students/', views.export_students, name='export_students'),
+    path('download_template/', views.download_template, name='download_template'),
+    path('bulk_import_students/', views.bulk_import_students, name='bulk_import_students'),
+    path('barcode_attendance/', barcode_attendance, name='barcode_attendance'),
+    path('print_student_cards/', print_student_cards, name='print_student_cards'),
+    path('get_all_sections/', views.get_all_sections, name='get_all_sections'),
+    path('send_missing_data_message/', send_missing_data_message, name='send_missing_data_message'),
+
+
+    path('whatsapp_history/', whatsapp_history, name='whatsapp_history'),
     path('', include('bri.reports_urls')),
 ]

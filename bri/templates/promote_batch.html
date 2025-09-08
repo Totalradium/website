@@ -57,25 +57,36 @@
     <div class="col-md-2 sidebar">
       <div class="text-center mb-4">
         {% load static %}
-        <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User">
-        <h5>Abdullah</h5>
+        {% if request.session.user_picture %}
+          <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+        {% else %}
+          <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+        {% endif %}
+        <h5>{{ request.session.user_name|default:'Admin' }}</h5>
       </div>
       <a href="{% url 'studentss' %}">Students</a>
-      <a href="{% url 'list_students' %}">Teachers</a>
-      <a href="#">Fee Section</a>
-      <a href="#">Attendance</a>
-      <a href="#">Exam Management</a>
+      <a href="{% url 'add_teacher' %}">Teachers</a>
+      <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+      <a href="{% url 'attendance_dashboard' %}">Attendance</a>
+      <a href="{% url 'test_management' %}">Test Management</a>
       <a href="{% url 'add_user' %}">Users</a>
-      <a href="#">WhatsApp</a>
-      <a href="#">Reports</a>
-      <a href="{% url 'batch_management' %}">Class Management</a>
-      <a href="{% url 'promote_batch' %}" class="active">Promote Students</a>
+      <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+      <a href="{% url 'reports_dashboard' %}">Reports</a>
+      <a href="{% url 'batch_management' %}" class="active">Batch Management</a>
+      <a href="{% url 'subject_management' %}" style="margin-left: 20px; font-size: 14px;">Subject Management</a>
+      <hr>
+      <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
     </div>
 
     <!-- Main Content -->
     <div class="col-md-10 p-5">
       <div class="form-section">
-        <h3 class="form-title">Promote Students from One Batch to Another</h3>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h3 class="form-title">Promote Students from One Batch to Another</h3>
+          <div>
+            <a href="{% url 'batch_management' %}" class="btn btn-sm btn-outline-secondary">Add Class</a>
+          </div>
+        </div>
 
         <form method="POST">
           {% csrf_token %}

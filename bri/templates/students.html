@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Student</title>
-  
+  <title>Students Dashboard - Brightway</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
     body {
       background-color: #f8f9fa;
@@ -15,17 +15,14 @@
       border-radius: 8px;
       box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     }
-
     .sidebar {
       border-right: 1px solid #ddd;
       height: 100vh;
       padding-top: 30px;
     }
-
     .sidebar h5 {
       margin-bottom: 20px;
     }
-
     .sidebar a {
       display: block;
       padding: 10px 15px;
@@ -34,39 +31,37 @@
       border-radius: 5px;
       margin-bottom: 5px;
     }
-
     .sidebar a:hover,
     .sidebar a.active {
       background-color: #2bb3b3;
       color: #fff;
     }
-
     .form-title {
       font-weight: bold;
       margin-bottom: 25px;
       color: #2bb3b3;
     }
-    .dropdown-menu {
-        display: none;
-        padding-left: 20px;
-    }
-    .dropdown-menu a {
-        font-size: 14px;
-    }
-
     .btn-custom {
       background-color: #2bb3b3;
       color: #fff;
       border: none;
     }
-
     .btn-custom:hover {
       background-color: #239292;
     }
-
-    .btn-sm a {
-      color: inherit;
-      text-decoration: none;
+    .student-card {
+      transition: transform 0.2s;
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .student-card:hover {
+      transform: translateY(-2px);
+    }
+    .student-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
     }
   </style>
 </head>
@@ -87,7 +82,7 @@
         <a href="{% url 'studentss' %}" class="active">Students</a>
         <a href="{% url 'add_teacher' %}">Teachers</a>
         <a href="{% url 'fee_dashboard' %}">Fee Section</a>
-        <a href="{% url 'attendance_home' %}">Attendance</a>
+        <a href="{% url 'attendance_dashboard' %}">Attendance</a>
         <a href="{% url 'test_management' %}">Test Management</a>
         <a href="{% url 'add_user' %}">Users</a>
         <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
@@ -98,231 +93,417 @@
         <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
       </div>
 
-      <!-- Main Form Area -->
+      <!-- Main Content Area -->
       <div class="col-md-10 p-5">
         <div class="form-section">
           <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="form-title">
-              {% block title %}Add Student{% endblock %}
-            </h3>
-
+            <h3 class="form-title"><i class="fas fa-users"></i> Students Dashboard</h3>
             <div>
-              <a href="{% url 'studentss' %}" class="btn btn-sm btn-outline-secondary me-2">Add Students</a>
-              <a href="{% url 'list_students' %}" class="btn btn-sm btn-outline-info me-2">List Students</a>
-              <a href="{% url 'delete_disable_students' %}" class="btn btn-sm btn-outline-danger me-2">Delete</a>
-              <a href="{% url 'promote_students' %}" class="btn btn-sm btn-outline-success">Promote</a>
+              <a href="{% url 'list_students' %}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-list"></i> View All Students
+              </a>
+              <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                <i class="fas fa-plus"></i> Add New Student
+              </button>
             </div>
           </div>
 
-          {% if messages %}
-            {% for message in messages %}
-              <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          <!-- Statistics Cards -->
+          <div class="row mb-4">
+            <div class="col-md-3">
+              <div class="card text-center student-card">
+                <div class="card-body">
+                  <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                  <h4>{{ total_students }}</h4>
+                  <p class="text-muted">Total Students</p>
+                </div>
               </div>
-            {% endfor %}
-          {% endif %}
+            </div>
+            <div class="col-md-3">
+              <div class="card text-center student-card">
+                <div class="card-body">
+                  <i class="fas fa-school fa-2x text-success mb-2"></i>
+                  <h4>{{ total_classes }}</h4>
+                  <p class="text-muted">Classes</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card text-center student-card">
+                <div class="card-body">
+                  <i class="fas fa-layer-group fa-2x text-warning mb-2"></i>
+                  <h4>{{ total_sections }}</h4>
+                  <p class="text-muted">Sections</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="card text-center student-card">
+                <div class="card-body">
+                  <i class="fas fa-user-plus fa-2x text-info mb-2"></i>
+                  <h4>{{ new_admissions }}</h4>
+                  <p class="text-muted">New This Month</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {% block content %}
+          <!-- Recent Students -->
+          <div class="card">
+            <div class="card-header">
+              <h5><i class="fas fa-clock"></i> Recent Students</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                {% for student in recent_students %}
+                <div class="col-md-6 mb-3">
+                  <div class="card student-card">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center">
+                        <div class="me-3">
+                          {% if student.profile_picture %}
+                            <img src="{{ student.profile_picture.url }}" class="student-avatar" alt="Student">
+                          {% else %}
+                            <div class="student-avatar bg-primary d-flex align-items-center justify-content-center text-white">
+                              {{ student.std_fname|first }}{{ student.std_lname|first }}
+                            </div>
+                          {% endif %}
+                        </div>
+                        <div class="flex-grow-1">
+                          <h6 class="mb-1">{{ student.std_fname }} {{ student.std_lname }}</h6>
+                          <p class="text-muted mb-1">Roll: {{ student.std_roll }}</p>
+                          <small class="text-muted">{{ student.std_class.class_name }}-{{ student.std_section.std_section }}</small>
+                        </div>
+                        <div>
+                          <a href="{% url 'edit_students' student.id %}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-edit"></i>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                  <p class="text-muted text-center">No students found</p>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="row mt-4">
+            <div class="col-md-4">
+              <div class="card student-card">
+                <div class="card-body text-center">
+                  <i class="fas fa-user-graduate fa-3x text-primary mb-3"></i>
+                  <h5>Manage Students</h5>
+                  <p class="text-muted">Add, edit, or remove students</p>
+                  <a href="{% url 'list_students' %}" class="btn btn-primary">Manage</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card student-card">
+                <div class="card-body text-center">
+                  <i class="fas fa-arrow-up fa-3x text-success mb-3"></i>
+                  <h5>Promote Students</h5>
+                  <p class="text-muted">Promote students to next class</p>
+                  <a href="{% url 'promote_students' %}" class="btn btn-success">Promote</a>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card student-card">
+                <div class="card-body text-center">
+                  <i class="fas fa-file-export fa-3x text-warning mb-3"></i>
+                  <h5>Export Data</h5>
+                  <p class="text-muted">Export student data to Excel</p>
+                  <a href="{% url 'export_students' %}" class="btn btn-warning">Export</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions Section -->
+          <div class="row mt-4">
+            <div class="col-md-6">
+              <!-- Bulk Import Section -->
+              <div class="card">
+                <div class="card-header">
+                  <h5><i class="fas fa-file-excel"></i> Bulk Import Students</h5>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted">Upload a CSV file to add multiple students at once.</p>
+                  <div class="mb-3">
+                    <a href="{% url 'download_template' %}" class="btn btn-success">
+                      <i class="fas fa-download"></i> Download Template
+                    </a>
+                  </div>
+                  <form method="POST" enctype="multipart/form-data" action="{% url 'bulk_import_students' %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                      <label for="excel_file" class="form-label">Select CSV File</label>
+                      <input type="file" name="excel_file" id="excel_file" class="form-control" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                      <i class="fas fa-upload"></i> Import Students
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <!-- Bulk Management Section -->
+              <div class="card">
+                <div class="card-header">
+                  <h5><i class="fas fa-users-cog"></i> Bulk Student Management</h5>
+                </div>
+                <div class="card-body">
+                  <p class="text-muted">Enable, disable, or delete multiple students by class and section.</p>
+                  <div class="d-grid gap-2">
+                    <a href="{% url 'delete_disable_students' %}" class="btn btn-warning">
+                      <i class="fas fa-edit"></i> Manage Students
+                    </a>
+                    <a href="{% url 'promote_students' %}" class="btn btn-info">
+                      <i class="fas fa-level-up-alt"></i> Promote Students
+                    </a>
+                    <button class="btn btn-danger" onclick="toggleMissingDataReport()">
+                      <i class="fas fa-exclamation-triangle"></i> Missing Data Report
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Missing Data Report -->
+          <div class="card mt-4" id="missingDataReport" style="display: none;">
+            <div class="card-header bg-warning">
+              <h5><i class="fas fa-exclamation-triangle"></i> Missing Data Report ({{ students_with_missing_data|length }} students)</h5>
+            </div>
+            <div class="card-body">
+              {% if students_with_missing_data %}
+              <p class="text-muted">The following students have missing information:</p>
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Roll</th>
+                      <th>Class</th>
+                      <th>Section</th>
+                      <th>Missing Fields</th>
+                      <th>Contact</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for student in students_with_missing_data %}
+                    <tr>
+                      <td>{{ student.name }}</td>
+                      <td>{{ student.roll }}</td>
+                      <td>{{ student.class }}</td>
+                      <td>{{ student.section }}</td>
+                      <td>
+                        {% for field in student.missing_fields %}
+                          <span class="badge bg-secondary me-1">{{ field }}</span>
+                        {% endfor %}
+                      </td>
+                      <td>{{ student.contact|default:"No Contact" }}</td>
+                      <td>
+                        <a href="{% url 'edit_students' student.id %}" class="btn btn-sm btn-outline-primary me-1">
+                          <i class="fas fa-edit"></i>
+                        </a>
+                        {% if student.contact %}
+                        <button class="btn btn-sm btn-outline-success" onclick="sendMissingDataMessage({{ student.id }})">
+                          <i class="fas fa-paper-plane"></i>
+                        </button>
+                        {% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% else %}
+              <div class="text-center py-4">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5>All Student Data Complete!</h5>
+                <p class="text-muted">No students have missing information.</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Student Modal -->
+  <div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
           <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
-
-            <!-- Student Details -->
             <div class="row mb-3">
               <div class="col-md-6">
                 <label>First Name</label>
-                <input type="text" name="first_name" class="form-control" 
-                  value="{{ form_data.first_name|default:'' }}" required />
+                <input type="text" name="first_name" class="form-control" required>
               </div>
               <div class="col-md-6">
                 <label>Last Name</label>
-                <input type="text" name="last_name" class="form-control" 
-                  value="{{ form_data.last_name|default:'' }}" />
+                <input type="text" name="last_name" class="form-control">
               </div>
             </div>
-
             <div class="row mb-3">
               <div class="col-md-6">
                 <label>Username</label>
-                <input type="text" name="username" class="form-control" 
-                  value="{{ form_data.username|default:'' }}" required />
+                <input type="text" name="username" class="form-control" required>
               </div>
               <div class="col-md-6">
                 <label>Password</label>
-                <input type="password" name="password" class="form-control" required />
+                <input type="password" name="password" class="form-control" required>
               </div>
             </div>
-
             <div class="row mb-3">
               <div class="col-md-6">
                 <label>Date of Birth</label>
-                <input type="date" name="dob" class="form-control" 
-                  value="{{ form_data.dob|default:'' }}" required />
+                <input type="date" name="dob" class="form-control" required>
               </div>
               <div class="col-md-6">
                 <label>Roll Number</label>
-                <input type="number" name="std_roll" class="form-control" 
-                  value="{{ form_data.std_roll|default:'' }}" required />
+                <input type="number" name="std_roll" class="form-control" required>
               </div>
             </div>
-
-            <!-- Class and Section Dropdown -->
             <div class="row mb-3">
               <div class="col-md-6">
                 <label>Class</label>
-                <select class="form-select" name="class" id="class" required>
-                  <option disabled {% if not form_data.class %}selected{% endif %}>No option selected</option>
+                <select class="form-select" name="class" id="modalClass" required>
+                  <option value="" disabled selected>Select Class</option>
                   {% for cls in classes %}
-                    <option value="{{ cls.id }}" 
-                      {% if form_data.class|stringformat:"s" == cls.id|stringformat:"s" %}selected{% endif %}>
-                      {{ cls.class_name }}
-                    </option>
+                    <option value="{{ cls.id }}">{{ cls.class_name }}</option>
                   {% endfor %}
                 </select>
               </div>
-
               <div class="col-md-6">
                 <label>Section</label>
-                <select class="form-select" name="section" id="section" required disabled>
-                  <option disabled selected>Select Class First</option>
+                <select class="form-select" name="section" id="modalSection" required>
+                  <option value="" disabled selected>Select Section</option>
                 </select>
               </div>
             </div>
-
             <div class="row mb-3">
               <div class="col-md-6">
                 <label>Gender</label>
                 <select class="form-select" name="gender" required>
-                  <option disabled {% if not form_data.gender %}selected{% endif %}>Not Selected</option>
-                  <option value="Male" {% if form_data.gender == "Male" %}selected{% endif %}>Male</option>
-                  <option value="Female" {% if form_data.gender == "Female" %}selected{% endif %}>Female</option>
+                  <option value="" disabled selected>Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
                 </select>
               </div>
             </div>
-
-            <!-- Guardian Details -->
             <h5 class="mt-4 mb-3">Guardian Details</h5>
             <div class="row mb-3">
               <div class="col-md-6">
-                <label>Guardian Name 1</label>
-                <input type="text" name="guardian_name1" class="form-control" 
-                  value="{{ form_data.guardian_name1|default:'' }}" />
+                <label>Guardian Name</label>
+                <input type="text" name="guardian_name1" class="form-control">
               </div>
               <div class="col-md-6">
                 <label>Contact 1</label>
-                <input
-                  type="tel"
-                  name="guardian_contact1"
-                  class="form-control"
-                  placeholder="+92..."
-                  value="{{ form_data.guardian_contact1|default:'' }}"
-                />
+                <input type="tel" name="guardian_contact1" class="form-control" placeholder="+92...">
               </div>
             </div>
-
             <div class="row mb-3">
-              <div class="col-md-6">
-                <label>Guardian Name 2</label>
-                <input type="text" name="guardian_name2" class="form-control" 
-                  value="{{ form_data.guardian_name2|default:'' }}" />
-              </div>
               <div class="col-md-6">
                 <label>Contact 2</label>
-                <input
-                  type="tel"
-                  name="guardian_contact2"
-                  class="form-control"
-                  placeholder="+92..."
-                  value="{{ form_data.guardian_contact2|default:'' }}"
-                />
+                <input type="tel" name="guardian_contact2" class="form-control" placeholder="+92...">
               </div>
             </div>
-
-            <!-- New Address Field -->
-            <div class="row mb-3">
-              <div class="col-md-12">
-                <label>Address</label>
-                <textarea name="address" class="form-control" rows="3" placeholder="Enter student's address">{{ form_data.address|default:'' }}</textarea>
-              </div>
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea name="address" class="form-control" rows="3" required></textarea>
             </div>
-
-            <!-- Fee Discount Section -->
-            <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="discountAmount" class="form-label">Fee Discount (PKR)</label>
-                <input
-                  type="number"
-                  class="form-control"
-                  name="discount_amount"
-                  min="0"
-                  value="{{ form_data.discount_amount|default:'0' }}"
-                />
-              </div>
-              <div class="col-md-6">
-                <label>Profile Picture</label>
-                <input type="file" name="profile_picture" class="form-control" accept="image/*" />
-              </div>
+            <div class="mb-3">
+              <label for="discountAmount" class="form-label">Fee Discount (PKR)</label>
+              <input type="number" class="form-control" name="discount_amount" min="0" value="0">
             </div>
-
-            <button type="submit" class="btn btn-primary">Save Student</button>
+            <div class="mb-3">
+              <label for="bform" class="form-label">B-Form Number (Optional)</label>
+              <input type="text" class="form-control" name="bform" placeholder="e.g., 12345-1234567-1" pattern="[0-9]{5}-[0-9]{7}-[0-9]{1}">
+              <small class="form-text text-muted">Format: 12345-1234567-1</small>
+            </div>
+            <div class="mb-3">
+              <label>Profile Picture</label>
+              <input type="file" name="profile_picture" class="form-control" accept="image/*">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-custom">Add Student</button>
+            </div>
           </form>
-
-          <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-          <!-- JavaScript to dynamically update sections based on selected class -->
-          <script>
-            document.getElementById('class').addEventListener('change', function () {
-              const classId = this.value;
-              const sectionSelect = document.getElementById('section');
-
-              if (classId) {
-                // Enable section dropdown and clear previous sections
-                sectionSelect.disabled = false;
-                sectionSelect.innerHTML = '<option disabled selected>Select Section</option>';
-
-                // Fetch sections for the selected class
-                fetch(`/get_sections_for_class/${classId}/`)
-                  .then((response) => response.json())
-                  .then((data) => {
-                    data.sections.forEach((section) => {
-                      const option = document.createElement('option');
-                      option.value = section.id;
-                      option.text = section.std_section;
-                      sectionSelect.appendChild(option);
-                    });
-                  });
-              } else {
-                // Disable section dropdown if no class selected
-                sectionSelect.disabled = true;
-                sectionSelect.innerHTML = '<option disabled selected>Select Class First</option>';
-              }
-            });
-          </script>
-          <script>
-  // Auto-dismiss Bootstrap alerts after 3 seconds
-  setTimeout(function() {
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(function(alert) {
-      // Fade out
-      alert.classList.remove('show');
-      alert.classList.add('fade');
-      // Remove element after fade transition (optional)
-      setTimeout(() => alert.remove(), 300);
-    });
-  }, 3000); // 3000 ms = 3 seconds
-</script>
-<script>
-const dropdownToggle = document.querySelector('.dropdown-toggle');
-if (dropdownToggle) {
-    dropdownToggle.addEventListener('click', function(e) {
-        e.preventDefault();
-        const menu = this.nextElementSibling;
-        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-    });
-}
-</script>
-
-          {% endblock %}
         </div>
       </div>
-   
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('modalClass').addEventListener('change', function() {
+      const classId = this.value;
+      const sectionSelect = document.getElementById('modalSection');
+      sectionSelect.innerHTML = '<option value="" disabled selected>Select Section</option>';
+
+      fetch(`/get_sections_for_class/${classId}/`)
+        .then(response => response.json())
+        .then(data => {
+          data.sections.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.id;
+            option.text = section.std_section;
+            sectionSelect.appendChild(option);
+          });
+        });
+    });
+
+    function toggleMissingDataReport() {
+      const report = document.getElementById('missingDataReport');
+      if (report.style.display === 'none') {
+        report.style.display = 'block';
+        report.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        report.style.display = 'none';
+      }
+    }
+
+    function sendMissingDataMessage(studentId) {
+      if (confirm('Send WhatsApp message about missing data to guardian?')) {
+        fetch('/send_missing_data_message/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+          },
+          body: JSON.stringify({student_id: studentId})
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Message sent successfully!');
+          } else {
+            alert('Error: ' + data.error);
+          }
+        });
+      }
+    }
+  </script>
+</body>
+</html>

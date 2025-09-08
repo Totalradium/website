@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Barcode Attendance</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; }
+    .form-section { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); }
+    .sidebar { border-right: 1px solid #ddd; height: 100vh; padding-top: 30px; }
+    .sidebar a { display: block; padding: 10px 15px; color: #333; text-decoration: none; border-radius: 5px; margin-bottom: 5px; }
+    .sidebar a:hover, .sidebar a.active { background-color: #2bb3b3; color: #fff; }
+    .form-title { font-weight: bold; margin-bottom: 25px; color: #2bb3b3; }
+    .scanner-area { border: 3px dashed #2bb3b3; padding: 40px; text-align: center; margin: 20px 0; border-radius: 10px; }
+    .student-info { background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 10px 0; }
+    .attendance-log { max-height: 400px; overflow-y: auto; }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+        <div class="text-center mb-4">
+          {% load static %}
+          {% if request.session.user_picture %}
+            <img src="{{ request.session.user_picture }}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% else %}
+            <img src="{% static 'user_img.png' %}" height="100px" class="rounded-circle mb-2" alt="User" />
+          {% endif %}
+          <h5>{{ request.session.user_name|default:'Admin' }}</h5>
+        </div>
+        <a href="{% url 'studentss' %}">Students</a>
+        <a href="{% url 'add_teacher' %}">Teachers</a>
+        <a href="{% url 'fee_dashboard' %}">Fee Section</a>
+        <a href="{% url 'attendance_dashboard' %}" class="active">Attendance</a>
+        <a href="{% url 'test_management' %}">Test Management</a>
+        <a href="{% url 'add_user' %}">Users</a>
+        <a href="{% url 'whatsapp_integration' %}">WhatsApp</a>
+        <a href="{% url 'reports_dashboard' %}">Reports</a>
+        <a href="{% url 'batch_management' %}">Batch Management</a>
+        <hr>
+        <a href="{% url 'logout_view' %}" class="text-danger">Logout</a>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-md-10 p-5">
+        <div class="form-section">
+          <h3 class="form-title"><i class="fas fa-qrcode"></i> Barcode Attendance</h3>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="scanner-area">
+                <i class="fas fa-qrcode fa-3x text-muted mb-3"></i>
+                <h5>Scan Student Barcode</h5>
+                <input type="text" id="barcodeInput" class="form-control mt-3" placeholder="Scan barcode to mark present automatically" autofocus>
+                <p class="text-muted mt-2">Students will be marked PRESENT automatically when scanned</p>
+              </div>
+              
+
+            </div>
+            
+            <div class="col-md-6">
+              <div id="studentInfo" class="student-info" style="display: none;">
+                <h6>Student Information</h6>
+                <div id="studentDetails" class="d-flex align-items-center"></div>
+              </div>
+              
+              <div class="attendance-log">
+                <h6>Today's Attendance Log</h6>
+                <div id="attendanceLog" class="border rounded p-3" style="min-height: 300px;">
+                  <p class="text-muted">Scan barcodes to mark attendance...</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+
+
+    function markAttendance() {
+      const rollNumber = document.getElementById('barcodeInput').value.trim();
+      if (!rollNumber) return;
+
+      fetch('/barcode_attendance/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+          roll_number: rollNumber,
+          status: 'Present'
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showStudentInfo(data.student);
+          addToLog(data.student, 'Present');
+          document.getElementById('barcodeInput').value = '';
+        } else {
+          alert('Error: ' + data.error);
+        }
+      });
+    }
+
+    function showStudentInfo(student) {
+      const info = document.getElementById('studentInfo');
+      const details = document.getElementById('studentDetails');
+      
+      const imageHtml = student.image ? 
+        `<img src="${student.image}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 15px;">` :
+        `<div style="width: 60px; height: 60px; border-radius: 50%; background: #2bb3b3; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 15px;">${student.name.split(' ').map(n => n[0]).join('')}</div>`;
+      
+      details.innerHTML = `
+        ${imageHtml}
+        <div>
+          <strong>${student.name}</strong><br>
+          Roll: ${student.roll} | Class: ${student.class}-${student.section}<br>
+          Status: <span class="badge bg-success">Present</span><br>
+          Fee Status: <span class="badge bg-${student.fee_status === 'Paid' ? 'success' : 'danger'}">${student.fee_status}</span>
+        </div>
+      `;
+      info.style.display = 'block';
+    }
+
+    function addToLog(student, status) {
+      const log = document.getElementById('attendanceLog');
+      const time = new Date().toLocaleTimeString();
+      
+      const entry = document.createElement('div');
+      entry.className = 'alert alert-success py-2';
+      entry.innerHTML = `
+        <small>${time}</small> - ${student.name} (${student.roll}) - Present
+      `;
+      
+      if (log.children.length === 1 && log.children[0].classList.contains('text-muted')) {
+        log.innerHTML = '';
+      }
+      
+      log.insertBefore(entry, log.firstChild);
+    }
+
+
+
+    // Auto-mark attendance when barcode is scanned
+    document.getElementById('barcodeInput').addEventListener('input', function(e) {
+      const value = e.target.value.trim();
+      if (value.length >= 3) {
+        markAttendance();
+      }
+    });
+    
+    document.getElementById('barcodeInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        markAttendance();
+      }
+    });
+
+    // Add CSRF token
+    const csrfToken = '{{ csrf_token }}';
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken;
+    document.body.appendChild(csrfInput);
+  </script>
+</body>
+</html>

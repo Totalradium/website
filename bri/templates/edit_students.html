@@ -105,6 +105,12 @@
       <input type="number" class="form-control" name="discount_amount" min="0" value="{{ student.discount_amount }}">
     </div>
 
+    <div class="mb-3">
+      <label for="bform" class="form-label">B-Form Number (Optional)</label>
+      <input type="text" class="form-control" name="bform" value="{{ student.bform }}" placeholder="e.g., 12345-1234567-1" pattern="[0-9]{5}-[0-9]{7}-[0-9]{1}">
+      <small class="form-text text-muted">Format: 12345-1234567-1</small>
+    </div>
+
     <button type="submit" class="btn btn-primary">Save Changes</button>
   </form>
 
