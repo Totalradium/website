@@ -1,0 +1,113 @@
+<<<<<<< HEAD:bri/templates/create_message_template.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Message Template</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h4>Create New Message Template</h4>
+          </div>
+          <div class="card-body">
+            <form method="POST">
+              {% csrf_token %}
+              
+              <div class="mb-3">
+                <label class="form-label">Template Name</label>
+                <input type="text" name="name" class="form-control" required>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Template Type</label>
+                <select name="template_type" class="form-control" required>
+                  {% for value, label in template_types %}
+                    <option value="{{ value }}" {% if value == template_type %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Message Text</label>
+                <textarea name="message_text" class="form-control" rows="6" required placeholder="Enter your message template here..."></textarea>
+                <small class="text-muted">
+                  Available placeholders: {STUDENT_NAME}, {AMOUNT}, {MONTH}, {CLASS}, {SECTION}, {GUARDIAN_NAME}
+                </small>
+              </div>
+              
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">Create Template</button>
+                <button type="button" class="btn btn-secondary" onclick="window.close()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Create Message Template</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h4>Create New Message Template</h4>
+          </div>
+          <div class="card-body">
+            <form method="POST">
+              {% csrf_token %}
+              
+              <div class="mb-3">
+                <label class="form-label">Template Name</label>
+                <input type="text" name="name" class="form-control" required>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Template Type</label>
+                <select name="template_type" class="form-control" required>
+                  {% for value, label in template_types %}
+                    <option value="{{ value }}" {% if value == template_type %}selected{% endif %}>{{ label }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              
+              <div class="mb-3">
+                <label class="form-label">Message Text</label>
+                <textarea name="message_text" class="form-control" rows="6" required placeholder="Enter your message template here..."></textarea>
+                <small class="text-muted">
+                  Available placeholders: {STUDENT_NAME}, {AMOUNT}, {MONTH}, {CLASS}, {SECTION}, {GUARDIAN_NAME}
+                </small>
+              </div>
+              
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-success">Create Template</button>
+                <button type="button" class="btn btn-secondary" onclick="window.close()">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+>>>>>>> 4db7b1a601ffea98d14f2e7bdc03cc9bd455afb1:render_deploy/bri/templates/create_message_template.html
