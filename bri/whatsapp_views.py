@@ -82,10 +82,23 @@ def get_whatsapp_status(request):
     try:
         from .whatsapp_baileys import BaileysWhatsApp
         whatsapp = BaileysWhatsApp()
-        result = whatsapp.get_status()
-        return JsonResponse(result)
+        status = whatsapp.get_status()
+        if not status.get('connected'):
+            qr_result = whatsapp.get_qr_code()
+            if qr_result.get('qr'):
+                status['qr'] = qr_result['qr']
+        return JsonResponse(status)
     except Exception as e:
         return JsonResponse({"connected": False, "error": str(e)})
+
+def get_whatsapp_qr(request):
+    try:
+        from .whatsapp_baileys import BaileysWhatsApp
+        whatsapp = BaileysWhatsApp()
+        result = whatsapp.get_qr_code()
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": "WhatsApp service not available"})
 
 def get_message_status(request):
     return JsonResponse({
