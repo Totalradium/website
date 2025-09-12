@@ -92,13 +92,16 @@ def get_whatsapp_status(request):
         return JsonResponse({"connected": False, "error": str(e)})
 
 def get_whatsapp_qr(request):
+    if request.method == 'GET' and 'application/json' not in request.META.get('HTTP_ACCEPT', ''):
+        return render(request, 'whatsapp_qr.html')
+    
     try:
         from .whatsapp_baileys import BaileysWhatsApp
         whatsapp = BaileysWhatsApp()
         result = whatsapp.get_qr_code()
         return JsonResponse(result)
     except Exception as e:
-        return JsonResponse({"error": "WhatsApp service not available"})
+        return JsonResponse({"error": "WhatsApp service not available", "details": str(e)})
 
 def get_message_status(request):
     return JsonResponse({

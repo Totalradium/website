@@ -74,8 +74,8 @@ urlpatterns = [
     path('delete_teacher_assignment/<int:subject_id>/', views.delete_teacher_assignment, name='delete_teacher_assignment'),
     
     # WhatsApp URLs
+    path('whatsapp/qr/', whatsapp_views.get_whatsapp_qr, name='whatsapp_qr'),
     path('whatsapp/status/', whatsapp_views.get_whatsapp_status, name='whatsapp_status'),
-    path('get_whatsapp_qr/', whatsapp_views.get_whatsapp_qr, name='get_whatsapp_qr'),
     path('send_test_message/', whatsapp_views.send_test_message, name='send_test_message'),
     path('automate_whatsapp/', whatsapp_views.automate_whatsapp_messages, name='automate_whatsapp'),
     path('get_message_status/', whatsapp_views.get_message_status, name='get_message_status'),

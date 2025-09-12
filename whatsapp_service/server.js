@@ -14,7 +14,7 @@ async function connectToWhatsApp() {
     
     sock = makeWASocket({
         auth: state,
-        printQRInTerminal: true
+        printQRInTerminal: false
     });
 
     sock.ev.on('connection.update', (update) => {
@@ -34,18 +34,17 @@ async function connectToWhatsApp() {
             console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
             
             isConnected = false;
+            qrCodeData = null;
             
-            if (shouldReconnect) {
-                setTimeout(() => {
-                    connectToWhatsApp();
-                }, 3000);
-            } else {
-                qrCodeData = null;
-            }
+            // Don't auto-reconnect to avoid rate limiting
+            console.log('Connection closed. Manual restart required.');
         } else if (connection === 'open') {
             console.log('WhatsApp connected successfully!');
             isConnected = true;
             qrCodeData = null;
+        } else if (connection === 'connecting') {
+            console.log('Connecting to WhatsApp...');
+            isConnected = false;
         }
     });
 
@@ -88,7 +87,7 @@ app.get('/status', (req, res) => {
 });
 
 const PORT = process.env.WHATSAPP_PORT || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, 'localhost', () => {
     console.log(`WhatsApp service running on port ${PORT}`);
     connectToWhatsApp();
 });

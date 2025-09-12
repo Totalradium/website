@@ -145,25 +145,10 @@
             {% endfor %}
           {% endif %}
 
-          <!-- WhatsApp QR Code Section -->
-          <div class="row mb-4">
-            <div class="col-md-12">
-              <div class="card">
-                <div class="card-header">
-                  <h5><i class="fab fa-whatsapp"></i> WhatsApp Connection Status</h5>
-                </div>
-                <div class="card-body text-center">
-                  <div id="whatsapp-status" class="mb-3">
-                    <span class="badge bg-warning">Checking connection...</span>
-                  </div>
-                  <button id="refresh-qr" class="btn btn-sm btn-primary mb-3">Refresh QR Code</button>
-                  <div id="qr-code-container" style="display: none;">
-                    <p>Scan this QR code with WhatsApp:</p>
-                    <img id="qr-image" src="" alt="QR Code" style="max-width: 300px;">
-                  </div>
-                </div>
-              </div>
-            </div>
+          <!-- WhatsApp Setup -->
+          <div class="alert alert-info">
+            <h5><i class="fas fa-info-circle"></i> WhatsApp Setup</h5>
+            <p>Before sending messages, you need to connect WhatsApp. <a href="/whatsapp/qr/" target="_blank" class="btn btn-sm btn-primary">Open QR Code Page</a></p>
           </div>
 
           <!-- Message Sending Section -->
@@ -806,45 +791,7 @@ Brightway Foundation School And Academy`;
       }, 1500);
     });
     
-    // Check WhatsApp connection status
-    function checkWhatsAppStatus() {
-      const statusElement = document.getElementById('whatsapp-status');
-      const qrContainer = document.getElementById('qr-code-container');
-      
-      fetch('/get_whatsapp_qr/')
-        .then(response => response.json())
-        .then(data => {
-          console.log('QR response:', data);
-          
-          if (data.status === 'connected') {
-            statusElement.innerHTML = '<span class="badge bg-success">✅ Connected</span>';
-            qrContainer.style.display = 'none';
-          } else if (data.qr) {
-            statusElement.innerHTML = '<span class="badge bg-warning">📱 Scan QR Code</span>';
-            document.getElementById('qr-image').src = data.qr;
-            qrContainer.style.display = 'block';
-          } else {
-            statusElement.innerHTML = '<span class="badge bg-danger">❌ ' + (data.status || 'Disconnected') + '</span>';
-            qrContainer.innerHTML = '<p class="text-muted">' + (data.message || 'QR code not available') + '</p>';
-            qrContainer.style.display = 'block';
-          }
-        })
-        .catch(err => {
-          console.error('Error:', err);
-          statusElement.innerHTML = '<span class="badge bg-secondary">Service unavailable</span>';
-          qrContainer.innerHTML = '<p class="text-muted">WhatsApp service not running</p>';
-          qrContainer.style.display = 'block';
-        });
-    }
-    
-    // Check status on load and every 5 seconds
-    checkWhatsAppStatus();
-    setInterval(checkWhatsAppStatus, 5000);
-    
-    // Manual refresh button
-    document.getElementById('refresh-qr').addEventListener('click', function() {
-      checkWhatsAppStatus();
-    });
+
     
     // Update message status displays
     function updateMessageStatus() {

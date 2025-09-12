@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "cd whatsapp_service && npm install",
-    "start": "node whatsapp_service/server.js & python manage.py runserver 0.0.0.0:$PORT"
+    "start": "node whatsapp_service/server.js & python manage.py runserver 0.0.0.0:8000"
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.6.0",
