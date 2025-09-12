@@ -4,7 +4,9 @@ from django.conf import settings
 
 class BaileysWhatsApp:
     def __init__(self):
-        self.base_url = "http://localhost:3001"
+        import os
+        # Use environment variable for production, localhost for development
+        self.base_url = os.getenv('WHATSAPP_SERVICE_URL', 'http://localhost:3001')
     
     def get_qr_code(self):
         """Get QR code for WhatsApp authentication"""

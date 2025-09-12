@@ -76,8 +76,8 @@ app.get('/status', (req, res) => {
     res.json({ connected: isConnected });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const PORT = process.env.WHATSAPP_PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`WhatsApp service running on port ${PORT}`);
     connectToWhatsApp();
 });
