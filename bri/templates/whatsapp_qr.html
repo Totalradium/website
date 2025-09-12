@@ -19,7 +19,11 @@
     <script>
         async function checkStatus() {
             try {
-                const response = await fetch('/whatsapp/qr/');
+                const response = await fetch('/whatsapp/qr/', {
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
                 const data = await response.json();
                 
                 if (data.status === 'connected') {

@@ -145,13 +145,25 @@
             {% endfor %}
           {% endif %}
 
-          <!-- Manual WhatsApp Notice -->
-          <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle"></i> Quick WhatsApp Integration</h5>
-            <p>This opens WhatsApp Web tabs with pre-filled messages. Just press <kbd>Enter</kbd> in each tab to send. Much faster than typing manually!</p>
+          <!-- WhatsApp QR Code Section -->
+          <div class="row mb-4">
+            <div class="col-md-12">
+              <div class="card">
+                <div class="card-header">
+                  <h5><i class="fab fa-whatsapp"></i> WhatsApp Connection Status</h5>
+                </div>
+                <div class="card-body text-center">
+                  <div id="whatsapp-status" class="mb-3">
+                    <span class="badge bg-warning">Checking connection...</span>
+                  </div>
+                  <div id="qr-code-container" style="display: none;">
+                    <p>Scan this QR code with WhatsApp:</p>
+                    <img id="qr-image" src="" alt="QR Code" style="max-width: 300px;">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-
 
           <!-- Message Sending Section -->
           <div id="message-section">
@@ -731,45 +743,15 @@ Brightway Foundation School And Academy`;
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          logContainer.innerHTML += '<p><i class="fas fa-info-circle text-info"></i> Test message queued for sending...</p>';
-          
-          // Start polling for test message status
-          const pollTestMessage = setInterval(() => {
-            fetch('/get_message_status/', {
-              method: 'GET',
-              headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-              }
-            })
-            .then(response => response.json())
-            .then(statusData => {
-              if (statusData.messages) {
-                const testMsg = statusData.messages.find(m => m.phone === phone && m.status === 'sent');
-                if (testMsg) {
-                  clearInterval(pollTestMessage);
-                  // Move from pending to sent
-                  const msgIndex = pendingMessages.findIndex(msg => msg.phone === phone && msg.messageType === 'test');
-                  if (msgIndex !== -1) {
-                    sentMessages.push(pendingMessages.splice(msgIndex, 1)[0]);
-                  }
-                  updateMessageStatus();
-                  logContainer.innerHTML += '<p><i class="fas fa-check text-success"></i> Test message sent successfully!</p>';
-                  logContainer.scrollTop = logContainer.scrollHeight;
-                }
-              }
-            })
-            .catch(error => {
-              console.error('Test message polling error:', error);
-            });
-          }, 2000); // Poll every 2 seconds
-          
-          // Stop polling after 30 seconds if no confirmation
-          setTimeout(() => {
-            clearInterval(pollTestMessage);
-          }, 30000);
+          // Move from pending to sent immediately
+          const msgIndex = pendingMessages.findIndex(msg => msg.phone === phone && msg.messageType === 'test');
+          if (msgIndex !== -1) {
+            sentMessages.push(pendingMessages.splice(msgIndex, 1)[0]);
+          }
+          updateMessageStatus();
+          logContainer.innerHTML += '<p><i class="fas fa-check text-success"></i> Test message sent successfully!</p>';
           
         } else {
-          // Keep in pending but mark as failed
           testMessage.status = 'failed';
           updateMessageStatus();
           logContainer.innerHTML += `<p><i class="fas fa-exclamation-triangle text-danger"></i> Error: ${data.error}</p>`;
@@ -822,6 +804,34 @@ Brightway Foundation School And Academy`;
         }
       }, 1500);
     });
+    
+    // Check WhatsApp connection status
+    function checkWhatsAppStatus() {
+      fetch('/whatsapp/status/')
+        .then(response => response.json())
+        .then(data => {
+          const statusElement = document.getElementById('whatsapp-status');
+          const qrContainer = document.getElementById('qr-code-container');
+          
+          if (data.connected) {
+            statusElement.innerHTML = '<span class="badge bg-success">✅ Connected</span>';
+            qrContainer.style.display = 'none';
+          } else {
+            statusElement.innerHTML = '<span class="badge bg-danger">❌ Disconnected</span>';
+            if (data.qr) {
+              document.getElementById('qr-image').src = data.qr;
+              qrContainer.style.display = 'block';
+            }
+          }
+        })
+        .catch(() => {
+          document.getElementById('whatsapp-status').innerHTML = '<span class="badge bg-secondary">Service unavailable</span>';
+        });
+    }
+    
+    // Check status on load and every 5 seconds
+    checkWhatsAppStatus();
+    setInterval(checkWhatsAppStatus, 5000);
     
     // Update message status displays
     function updateMessageStatus() {

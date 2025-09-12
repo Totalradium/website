@@ -74,10 +74,15 @@ urlpatterns = [
     path('delete_teacher_assignment/<int:subject_id>/', views.delete_teacher_assignment, name='delete_teacher_assignment'),
     
     # WhatsApp URLs
-    path('whatsapp/qr/', whatsapp_views.get_whatsapp_qr, name='whatsapp_qr'),
     path('whatsapp/status/', whatsapp_views.get_whatsapp_status, name='whatsapp_status'),
     path('send_test_message/', whatsapp_views.send_test_message, name='send_test_message'),
-    path('automate_whatsapp_messages/', whatsapp_views.automate_whatsapp_messages, name='automate_whatsapp_messages'),
+    path('automate_whatsapp/', whatsapp_views.automate_whatsapp_messages, name='automate_whatsapp'),
+    path('get_message_status/', whatsapp_views.get_message_status, name='get_message_status'),
+    
+    path('attendance_notifications/', views.attendance_notification_log, name='attendance_notifications'),
+    path('send_notification/', views.send_notification, name='send_notification'),
+    path('send_all_notifications/', views.send_all_notifications, name='send_all_notifications'),
+    path('get_pending_count/', views.get_pending_count, name='get_pending_count'),
     
     # Reports URLs
     path('', include('bri.reports_urls')),

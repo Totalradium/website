@@ -21,6 +21,7 @@ async function connectToWhatsApp() {
         const { connection, lastDisconnect, qr } = update;
         
         if (qr) {
+            console.log('New QR code generated');
             QRCode.toDataURL(qr, (err, url) => {
                 if (!err) {
                     qrCodeData = url;
@@ -31,12 +32,18 @@ async function connectToWhatsApp() {
         if (connection === 'close') {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
-            if (shouldReconnect) {
-                connectToWhatsApp();
-            }
+            
+            // Clear QR code and reset connection status
+            qrCodeData = null;
             isConnected = false;
+            
+            if (shouldReconnect) {
+                setTimeout(() => {
+                    connectToWhatsApp();
+                }, 3000); // Wait 3 seconds before reconnecting
+            }
         } else if (connection === 'open') {
-            console.log('WhatsApp connected');
+            console.log('WhatsApp connected successfully!');
             isConnected = true;
             qrCodeData = null;
         }
@@ -48,11 +55,11 @@ async function connectToWhatsApp() {
 // API Routes
 app.get('/qr', (req, res) => {
     if (qrCodeData) {
-        res.json({ qr: qrCodeData });
+        res.json({ qr: qrCodeData, status: 'qr_ready' });
     } else if (isConnected) {
         res.json({ status: 'connected' });
     } else {
-        res.json({ status: 'connecting' });
+        res.json({ status: 'connecting', message: 'Generating new QR code...' });
     }
 });
 
