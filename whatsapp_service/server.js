@@ -33,14 +33,14 @@ async function connectToWhatsApp() {
             const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
             
-            // Clear QR code and reset connection status
-            qrCodeData = null;
             isConnected = false;
             
             if (shouldReconnect) {
                 setTimeout(() => {
                     connectToWhatsApp();
-                }, 3000); // Wait 3 seconds before reconnecting
+                }, 3000);
+            } else {
+                qrCodeData = null;
             }
         } else if (connection === 'open') {
             console.log('WhatsApp connected successfully!');
@@ -59,6 +59,10 @@ app.get('/qr', (req, res) => {
     } else if (isConnected) {
         res.json({ status: 'connected' });
     } else {
+        // Force reconnection to generate new QR
+        if (!sock || sock.ws.readyState !== 1) {
+            connectToWhatsApp();
+        }
         res.json({ status: 'connecting', message: 'Generating new QR code...' });
     }
 });
