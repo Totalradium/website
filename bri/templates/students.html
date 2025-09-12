@@ -95,6 +95,27 @@
 
       <!-- Main Content Area -->
       <div class="col-md-10 p-5">
+        <!-- Messages -->
+        {% if messages %}
+          {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" style="font-size: 16px; font-weight: 500; margin-bottom: 20px;" data-bs-autohide="false">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          {% endfor %}
+          <script>
+            // Auto-hide success messages after 8 seconds, keep error messages visible
+            document.querySelectorAll('.alert-success').forEach(function(alert) {
+              setTimeout(function() {
+                if (alert) {
+                  var bsAlert = new bootstrap.Alert(alert);
+                  bsAlert.close();
+                }
+              }, 8000);
+            });
+          </script>
+        {% endif %}
+        
         <div class="form-section">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <h3 class="form-title"><i class="fas fa-users"></i> Students Dashboard</h3>

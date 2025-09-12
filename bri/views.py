@@ -1088,7 +1088,7 @@ def list_students(request):
     search_section = request.GET.get('section', '').strip()
 
     # Initialize query
-    students = Student.objects.all()
+    students = Student.objects.all().order_by('std_roll')
 
     # Apply name filter
     if search_name:
@@ -2899,7 +2899,7 @@ def subject_management(request):
                         class_name_id=class_id,
                         section=section,
                         subject=subject_name,
-
+                        academic_year='2024-25'
                     )
                     
                     # Assign teacher if provided
@@ -2917,7 +2917,7 @@ def subject_management(request):
                     class_name_id=class_id,
                     section_id=section_id,
                     subject=subject_name,
-
+                    academic_year='2024-25'
                 )
                 
                 # Assign teacher if provided
@@ -3027,7 +3027,39 @@ def download_template(request):
     
     writer = csv.writer(response)
     writer.writerow(['First Name', 'Last Name', 'Username', 'Password', 'Roll Number', 'Class', 'Section', 'Gender', 'Date of Birth', 'Guardian Name', 'Contact 1', 'Contact 2', 'Address', 'Discount', 'B-Form'])
-    writer.writerow(['John', 'Doe', 'john123', 'password123', '1', 'Class 1', 'A', 'Male', '2010-01-01', 'John Sr.', '+923001234567', '+923007654321', '123 Main St', '0', '12345-1234567-1'])
+    # Get actual class and section names from database
+    classes = Class.objects.all()[:3]
+    demo_rows = []
+    
+    if classes.exists():
+        for i, cls in enumerate(classes):
+            sections = Section.objects.filter(class_name=cls)[:2]
+            for j, section in enumerate(sections):
+                demo_rows.append([
+                    f'Student{i+j+1}',
+                    f'Demo{i+j+1}',
+                    f'student{i+j+1}',
+                    'password123',
+                    str(i+j+1),
+                    cls.class_name,
+                    section.std_section,
+                    'Male' if (i+j) % 2 == 0 else 'Female',
+                    '2010-01-01',
+                    f'Guardian {i+j+1}',
+                    f'+92300123456{i+j}',
+                    f'+92301234567{i+j}',
+                    f'{i+j+1} Main Street, City',
+                    '0',
+                    f'12345-123456{i+j}-1'
+                ])
+    else:
+        demo_rows = [[
+            'John', 'Doe', 'john123', 'password123', '1', 'Class 1', 'A', 'Male', 
+            '2010-01-01', 'John Sr.', '+923001234567', '+923007654321', '123 Main St', '0', '12345-1234567-1'
+        ]]
+    
+    for row in demo_rows:
+        writer.writerow(row)
     
     return response
 
@@ -3050,8 +3082,11 @@ def bulk_import_students(request):
             success_count = 0
             error_count = 0
             
+            errors = []
+            
             for row_num, row in enumerate(reader, start=2):
                 if len(row) < 15:
+                    errors.append(f"Row {row_num}: Missing columns (expected 15, got {len(row)})")
                     error_count += 1
                     continue
                     
@@ -3071,21 +3106,72 @@ def bulk_import_students(request):
                     if not gender: gender = 'Not Specified'
                     if not dob: dob = '2000-01-01'
                     
+                    # Validate required fields
+                    if not first_name.strip():
+                        errors.append(f"Row {row_num}: First name is required")
+                        error_count += 1
+                        continue
+                    
+                    if not username.strip():
+                        errors.append(f"Row {row_num}: Username is required")
+                        error_count += 1
+                        continue
+                    
+                    if not roll_no.strip():
+                        errors.append(f"Row {row_num}: Roll number is required")
+                        error_count += 1
+                        continue
+                    
+                    # Validate date format
+                    if dob.strip():
+                        from datetime import datetime
+                        try:
+                            datetime.strptime(dob.strip(), '%Y-%m-%d')
+                        except ValueError:
+                            errors.append(f"Row {row_num}: Invalid date format '{dob}' (use YYYY-MM-DD)")
+                            error_count += 1
+                            continue
+                    
+                    # Validate discount amount
+                    if discount.strip():
+                        try:
+                            float(discount)
+                        except ValueError:
+                            errors.append(f"Row {row_num}: Invalid discount amount '{discount}'")
+                            error_count += 1
+                            continue
+                    
                     # Validate B-Form format if provided
                     if bform and bform.strip():
                         import re
                         if not re.match(r'^[0-9]{5}-[0-9]{7}-[0-9]{1}$', bform.strip()):
+                            errors.append(f"Row {row_num}: Invalid B-Form format '{bform}' (use 12345-1234567-1)")
                             error_count += 1
                             continue
                     
-                    std_class = Class.objects.get(class_name=class_name)
-                    std_section = Section.objects.get(std_section=section_name, class_name=std_class)
+                    # Check if class exists
+                    try:
+                        std_class = Class.objects.get(class_name=class_name)
+                    except Class.DoesNotExist:
+                        errors.append(f"Row {row_num}: Class '{class_name}' not found")
+                        error_count += 1
+                        continue
+                    
+                    # Check if section exists
+                    try:
+                        std_section = Section.objects.get(std_section=section_name, class_name=std_class)
+                    except Section.DoesNotExist:
+                        errors.append(f"Row {row_num}: Section '{section_name}' not found in class '{class_name}'")
+                        error_count += 1
+                        continue
                     
                     if Student.objects.filter(std_class=std_class, std_roll=roll_no).exists():
+                        errors.append(f"Row {row_num}: Roll number '{roll_no}' already exists in class '{class_name}'")
                         error_count += 1
                         continue
                     
                     if Username.objects.filter(username=username).exists():
+                        errors.append(f"Row {row_num}: Username '{username}' already exists")
                         error_count += 1
                         continue
                     
@@ -3117,13 +3203,23 @@ def bulk_import_students(request):
                     success_count += 1
                     
                 except Exception as e:
+                    errors.append(f"Row {row_num}: {str(e)}")
                     error_count += 1
                     continue
             
-            if success_count > 0:
-                messages.success(request, f'{success_count} students imported successfully!')
-            if error_count > 0:
-                messages.warning(request, f'{error_count} rows had errors and were skipped.')
+            if success_count > 0 and error_count == 0:
+                messages.success(request, f'✅ SUCCESS: All {success_count} students imported successfully! No errors found.')
+            elif success_count > 0 and error_count > 0:
+                messages.success(request, f'✅ PARTIAL SUCCESS: {success_count} students imported successfully!')
+                error_msg = f'⚠️ {error_count} rows had errors and were skipped.'
+                if errors:
+                    error_msg += f' Errors: {"; ".join(errors)}'
+                messages.warning(request, error_msg)
+            elif error_count > 0:
+                error_msg = f'❌ FAILED: {error_count} rows had errors and were skipped.'
+                if errors:
+                    error_msg += f' Errors: {"; ".join(errors)}'
+                messages.error(request, error_msg)
                 
         except Exception as e:
             messages.error(request, f'Error processing file: {str(e)}')

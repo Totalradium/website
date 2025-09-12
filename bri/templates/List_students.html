@@ -5,6 +5,14 @@
 {% endblock %}
 
 {% block content %}
+  <!-- Add Student Button -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4>All Students</h4>
+    <button class="btn btn-custom" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+      <i class="fas fa-plus"></i> Add New Student
+    </button>
+  </div>
+
   <!-- Filters -->
   <form method="GET" class="row g-3 mb-4">
     <div class="col-md-3">
@@ -84,4 +92,135 @@
       {% endif %}
     </tbody>
   </table>
+
+  <!-- Add Student Modal -->
+  <div class="modal fade" id="addStudentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Student</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form method="POST" enctype="multipart/form-data" action="{% url 'studentss' %}">
+            {% csrf_token %}
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>First Name</label>
+                <input type="text" name="first_name" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label>Last Name</label>
+                <input type="text" name="last_name" class="form-control">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Username</label>
+                <input type="text" name="username" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" required>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Date of Birth</label>
+                <input type="date" name="dob" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label>Roll Number</label>
+                <input type="text" name="std_roll" class="form-control" placeholder="e.g., 101-26" required>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Class</label>
+                <select class="form-select" name="class" id="modalClass" required>
+                  <option value="" disabled selected>Select Class</option>
+                  {% for cls in class_list %}
+                    <option value="{{ cls.id }}">{{ cls.class_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label>Section</label>
+                <select class="form-select" name="section" id="modalSection" required>
+                  <option value="" disabled selected>Select Section</option>
+                </select>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Gender</label>
+                <select class="form-select" name="gender" required>
+                  <option value="" disabled selected>Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
+              </div>
+            </div>
+            <h5 class="mt-4 mb-3">Guardian Details</h5>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Guardian Name</label>
+                <input type="text" name="guardian_name1" class="form-control">
+              </div>
+              <div class="col-md-6">
+                <label>Contact 1</label>
+                <input type="tel" name="guardian_contact1" class="form-control" placeholder="+92...">
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label>Contact 2</label>
+                <input type="tel" name="guardian_contact2" class="form-control" placeholder="+92...">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="address" class="form-label">Address</label>
+              <textarea name="address" class="form-control" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="discountAmount" class="form-label">Fee Discount (PKR)</label>
+              <input type="number" class="form-control" name="discount_amount" min="0" value="0">
+            </div>
+            <div class="mb-3">
+              <label for="bform" class="form-label">B-Form Number (Optional)</label>
+              <input type="text" class="form-control" name="bform" placeholder="e.g., 12345-1234567-1" pattern="[0-9]{5}-[0-9]{7}-[0-9]{1}">
+              <small class="form-text text-muted">Format: 12345-1234567-1</small>
+            </div>
+            <div class="mb-3">
+              <label>Profile Picture</label>
+              <input type="file" name="profile_picture" class="form-control" accept="image/*">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-custom">Add Student</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('modalClass').addEventListener('change', function() {
+      const classId = this.value;
+      const sectionSelect = document.getElementById('modalSection');
+      sectionSelect.innerHTML = '<option value="" disabled selected>Select Section</option>';
+
+      fetch(`/get_sections_for_class/${classId}/`)
+        .then(response => response.json())
+        .then(data => {
+          data.sections.forEach(section => {
+            const option = document.createElement('option');
+            option.value = section.id;
+            option.text = section.std_section;
+            sectionSelect.appendChild(option);
+          });
+        });
+    });
+  </script>
 {% endblock %}

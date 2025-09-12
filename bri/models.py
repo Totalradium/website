@@ -70,7 +70,7 @@ class Student(models.Model):
     std_fname = models.CharField(max_length=20)
     std_lname = models.CharField(max_length=20)
     std_dob = models.DateField()
-    std_roll = models.SmallIntegerField()
+    std_roll = models.CharField(max_length=20)
     std_class = models.ForeignKey(Class, on_delete=models.CASCADE)
     guardian_name = models.CharField(max_length=100, blank=True)
     guardian_contact1 = PhoneNumberField(blank=True, null=True)
