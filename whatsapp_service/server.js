@@ -14,7 +14,15 @@ async function connectToWhatsApp() {
     
     sock = makeWASocket({
         auth: state,
-        printQRInTerminal: false
+        printQRInTerminal: false,
+        browser: ['Chrome (Linux)', '', ''],
+        syncFullHistory: false,
+        markOnlineOnConnect: false,
+        generateHighQualityLinkPreview: false,
+        defaultQueryTimeoutMs: 60000,
+        connectTimeoutMs: 60000,
+        keepAliveIntervalMs: 30000,
+        emitOwnEvents: false
     });
 
     sock.ev.on('connection.update', (update) => {
@@ -30,14 +38,38 @@ async function connectToWhatsApp() {
         }
         
         if (connection === 'close') {
-            const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-            console.log('Connection closed due to ', lastDisconnect?.error, ', reconnecting ', shouldReconnect);
+            const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+            console.log('Connection closed due to ', lastDisconnect?.error);
             
             isConnected = false;
             qrCodeData = null;
             
-            // Don't auto-reconnect to avoid rate limiting
-            console.log('Connection closed. Manual restart required.');
+            if (statusCode === 401) {
+                console.log('❌ WhatsApp blocked this connection (401). Auto-deleting auth folder and restarting...');
+                const fs = require('fs');
+                const path = require('path');
+                
+                // Delete auth folder
+                try {
+                    fs.rmSync('../auth_info_baileys', { recursive: true, force: true });
+                    console.log('🗑️ Auth folder deleted');
+                } catch (err) {
+                    console.log('⚠️ Could not delete auth folder:', err.message);
+                }
+                
+                // Restart after 5 seconds
+                setTimeout(() => {
+                    console.log('🔄 Restarting WhatsApp connection...');
+                    connectToWhatsApp();
+                }, 5000);
+            } else if (statusCode === DisconnectReason.loggedOut) {
+                console.log('📱 Logged out. Need to scan QR again.');
+            } else {
+                console.log('🔄 Connection lost. Will auto-reconnect in 10 seconds...');
+                setTimeout(() => {
+                    connectToWhatsApp();
+                }, 10000);
+            }
         } else if (connection === 'open') {
             console.log('WhatsApp connected successfully!');
             isConnected = true;
@@ -75,6 +107,10 @@ app.post('/send', async (req, res) => {
     
     try {
         const jid = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+        
+        // Add random delay to mimic human behavior
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
+        
         await sock.sendMessage(jid, { text: message });
         res.json({ success: true });
     } catch (error) {

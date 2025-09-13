@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-juvy_ntpn&_qlx7%29#_^#8&8v+#-8!jo@51sb6_3%$e62()g1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','website-8luq.onrender.com']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'website-8luq.onrender.com', '.onrender.com']
 SESSION_COOKIE_NAME = 'sessionid'
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SECURE = False

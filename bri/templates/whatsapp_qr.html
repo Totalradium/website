@@ -30,11 +30,15 @@
                     document.getElementById('status').innerHTML = '✅ WhatsApp Connected!';
                     document.getElementById('status').className = 'status connected';
                     document.getElementById('qr-container').innerHTML = '';
-                } else if (data.qr) {
+                } else if (data.qr || data.status === 'qr_ready') {
                     document.getElementById('status').innerHTML = '📱 Scan QR Code with WhatsApp';
-                    document.getElementById('qr-container').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
+                    document.getElementById('qr-container').innerHTML = `<img src="${data.qr}" alt="QR Code" style="max-width: 300px;">`;
+                } else if (data.status === 'connecting') {
+                    document.getElementById('status').innerHTML = '🔄 Generating QR Code...';
+                    document.getElementById('qr-container').innerHTML = '';
                 } else {
                     document.getElementById('status').innerHTML = '🔄 Connecting to WhatsApp...';
+                    document.getElementById('qr-container').innerHTML = '';
                 }
             } catch (error) {
                 document.getElementById('status').innerHTML = '❌ WhatsApp service not running';

@@ -1,0 +1,1 @@
+web: bash -c "cd whatsapp_service && npm install && node server.js & python manage.py runserver 0.0.0.0:$PORT"

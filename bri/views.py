@@ -1171,11 +1171,22 @@ def edit_students(request, student_id):
         address = request.POST.get('address')
 
         try:
+            std_class = Class.objects.get(id=class_id)
+            
+            # Check if roll number exists for this class (excluding current student)
+            existing_student = Student.objects.filter(std_class=std_class, std_roll=std_roll).exclude(id=student.id).first()
+            if existing_student:
+                messages.error(
+                    request,
+                    f"Roll number {std_roll} already assigned to {existing_student.std_fname} {existing_student.std_lname} in class {std_class.class_name}. Please choose a different roll number."
+                )
+                return render(request, 'edit_students.html', {'student': student, 'classes': classes, 'sections': sections})
+            
             student.std_fname = std_fname
             student.std_lname = std_lname
             student.std_dob = dob
             student.std_roll = std_roll
-            student.std_class = Class.objects.get(id=class_id)  # <-- Correct field here
+            student.std_class = std_class
             student.std_section = Section.objects.get(id=section_id) if section_id else None
             student.gender = gender
             student.guardian_name = guardian_name

@@ -4,7 +4,7 @@
   "description": "WhatsApp service using Baileys",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "start \"WhatsApp Service\" cmd /k \"node server.js\""
   },
   "dependencies": {
     "@whiskeysockets/baileys": "^6.6.0",
