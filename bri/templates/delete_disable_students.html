@@ -60,9 +60,9 @@
         <h3 class="mb-4"><i class="fas fa-users-cog"></i> Manage Students</h3>
   <!-- Filters Section -->
   <form method="GET" class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label for="classFilter" class="form-label">Class</label>
-      <select id="classFilter" name="class" class="form-control" required>
+      <select id="classFilter" name="class" class="form-control">
         <option value="">Select Class</option>
         {% for c in class_list %}
           <option value="{{ c.class_name }}" {% if filters.class == c.class_name %}selected{% endif %}>
@@ -72,9 +72,9 @@
       </select>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
       <label for="sectionFilter" class="form-label">Section</label>
-      <select id="sectionFilter" name="section" class="form-control" required>
+      <select id="sectionFilter" name="section" class="form-control">
         <option value="">Select Section</option>
         {% for k in section_list %}
           <option value="{{ k.id }}" {% if filters.section == k.id|stringformat:"s" %}selected{% endif %}>
@@ -84,8 +84,13 @@
       </select>
     </div>
 
-    <div class="col-md-4 d-flex align-items-end">
-      <button type="submit" class="btn btn-primary w-100">Filter</button>
+    <div class="col-md-3">
+      <label for="rollFilter" class="form-label">Roll Number</label>
+      <input type="text" id="rollFilter" name="roll" class="form-control" placeholder="Search by roll number" value="{{ filters.roll }}">
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+      <button type="submit" class="btn btn-success w-100" style="background: linear-gradient(45deg, #28a745, #20c997); border: none; border-radius: 8px; font-weight: 600; box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3); transition: all 0.3s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px rgba(40, 167, 69, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 8px rgba(40, 167, 69, 0.3)'">🔍 Filter</button>
     </div>
   </form>
 
@@ -100,6 +105,7 @@
             <input type="checkbox" id="selectAll" class="custom-checkbox" title="Select All">
           </th>
           <th>Name</th>
+          <th>Roll No</th>
           <th>Class</th>
           <th>Section</th>
           <th>Status</th>
@@ -113,6 +119,7 @@
                 <input type="checkbox" name="selected_students" value="{{ stud.id }}" class="custom-checkbox student-checkbox">
               </td>
               <td>{{ stud.std_fname }} {{ stud.std_lname }}</td>
+              <td>{{ stud.std_roll }}</td>
               <td>{{ stud.std_class.class_name }}</td>
               <td>
                 {% if stud.std_section %}
@@ -132,7 +139,7 @@
           {% endfor %}
         {% else %}
           <tr>
-            <td colspan="5" class="text-center">No students found for selected class/section.</td>
+            <td colspan="6" class="text-center">No students found for selected class/section.</td>
           </tr>
         {% endif %}
       </tbody>

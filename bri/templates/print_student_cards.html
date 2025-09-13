@@ -6,40 +6,62 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    body { background-color: #f8f9fa; }
+    body { background-color: white; }
     .form-section { background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0, 0, 0, 0.1); }
     .sidebar { border-right: 1px solid #ddd; height: 100vh; padding-top: 30px; }
     .sidebar a { display: block; padding: 10px 15px; color: #333; text-decoration: none; border-radius: 5px; margin-bottom: 5px; }
     .sidebar a:hover, .sidebar a.active { background-color: #2bb3b3; color: #fff; }
     .form-title { font-weight: bold; margin-bottom: 25px; color: #2bb3b3; }
     
-    /* ID Card Styles - A4 optimized (8 cards per page) */
+    /* ID Card Styles - A4 optimized (2 columns) */
+    .cards-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10mm;
+      width: 100%;
+    }
+    .card-column {
+      display: flex;
+      flex-direction: column;
+      gap: 5mm;
+    }
     .id-card { 
-      width: 85mm; 
-      height: 54mm; 
+      width: 95mm; 
+      height: 60mm; 
       border: 2px solid #2bb3b3; 
       border-radius: 8px; 
       padding: 8px; 
-      margin: 5mm; 
       background: white;
       color: black;
-      display: inline-block;
       page-break-inside: avoid;
-      vertical-align: top;
       box-sizing: border-box;
     }
     .id-card .school-name { font-size: 9px; font-weight: bold; text-align: center; margin-bottom: 3px; line-height: 1.2; }
     .id-card .student-info { font-size: 10px; line-height: 1.3; }
-    .id-card .barcode { text-align: center; margin-top: 3px; }
-    .id-card .barcode img { width: 100%; height: 30px; }
+    .id-card .barcode { text-align: center; margin-top: 15px; }
+    .id-card .barcode img { width: 100%; height: 50px; }
     .id-card .student-photo { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; }
     .id-card .institute-logo { width: 70px; height: 70px; object-fit: contain; }
     .id-card .demo-text { background: #f8f9fa; padding: 2px 5px; border-radius: 3px; margin: 2px 0; border: 1px solid #e9ecef; }
     
     @media print {
-      body { margin: 0; }
+      body { margin: 0; padding: 0 15mm 5mm 0; }
       .no-print { display: none !important; }
-      .id-card { margin: 5px; }
+      .cards-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8mm;
+        width: 100%;
+        margin-left: -5mm;
+      }
+      .card-column {
+        display: flex;
+        flex-direction: column;
+        gap: 8mm;
+      }
+      .id-card { 
+        margin: 0;
+      }
     }
   </style>
 </head>
@@ -95,13 +117,13 @@
             </div>
             <div class="col-md-4 d-flex align-items-end">
               <button type="submit" class="btn btn-primary me-2">Load Students</button>
-              {% if students %}
+              {% if students_with_barcodes %}
                 <button type="button" class="btn btn-success" onclick="printSelected()">Print Selected</button>
               {% endif %}
             </div>
           </form>
           
-          {% if students %}
+          {% if students_with_barcodes %}
           <div class="no-print mb-3">
             <div class="d-flex justify-content-between align-items-center">
               <h6>Select Students to Print:</h6>
@@ -111,11 +133,11 @@
               </div>
             </div>
             <div class="row mt-2">
-              {% for student in students %}
+              {% for item in students_with_barcodes %}
               <div class="col-md-3 mb-2">
-                <button class="btn btn-outline-success btn-sm w-100 student-btn" data-student-id="{{ student.id }}" onclick="toggleStudent(this)">
+                <button class="btn btn-outline-success btn-sm w-100 student-btn" data-student-id="{{ item.student.id }}" onclick="toggleStudent(this)">
                   <i class="fas fa-check me-1"></i>
-                  {{ student.std_fname }} {{ student.std_lname }} ({{ student.std_roll }})
+                  {{ item.student.std_fname }} {{ item.student.std_lname }} ({{ item.student.std_roll }})
                 </button>
               </div>
               {% endfor %}
@@ -125,37 +147,73 @@
         </div>
 
         <!-- ID Cards -->
-        {% if students %}
+        {% if students_with_barcodes %}
           <div class="text-center no-print mb-3">
-            <h5>{{ students|length }} ID Cards Ready for Printing</h5>
+            <h5>{{ students_with_barcodes|length }} ID Cards Ready for Printing</h5>
           </div>
           
-          {% for student in students %}
-            <div class="id-card" id="card-{{ student.id }}">
-              <div style="text-align: center; margin-bottom: 8px;">
-                <img src="{% static 'logo_renewed.png' %}" class="institute-logo" alt="Logo">
-              </div>
-              <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
-                <div style="text-align: center;">
-                  {% if student.profile_picture %}
-                    <img src="{{ student.profile_picture.url }}" class="student-photo">
-                  {% else %}
-                    <div class="student-photo" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 8px; color: #666;">
-                      {{ student.std_fname|first }}{{ student.std_lname|first }}
+          <div class="cards-container">
+            <div class="card-column">
+              {% for item in students_with_barcodes %}
+                {% if forloop.counter0|divisibleby:2 %}
+                <div class="id-card" id="card-{{ item.student.id }}">
+                  <div style="text-align: center; margin-bottom: 8px;">
+                    <img src="{% static 'logo_renewed.png' %}" class="institute-logo" alt="Logo">
+                  </div>
+                  <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <div style="text-align: center;">
+                      {% if item.student.profile_picture %}
+                        <img src="{{ item.student.profile_picture.url }}" class="student-photo">
+                      {% else %}
+                        <div class="student-photo" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 8px; color: #666;">
+                          {{ item.student.std_fname|first }}{{ item.student.std_lname|first }}
+                        </div>
+                      {% endif %}
                     </div>
-                  {% endif %}
+                    <div class="student-info" style="flex: 1;">
+                      <div class="demo-text"><strong>{{ item.student.std_fname }} {{ item.student.std_lname }}</strong></div>
+                      <div class="demo-text">Roll: {{ item.student.std_roll }}</div>
+                      <div class="demo-text">{{ item.student.std_class.class_name }}-{{ item.student.std_section.std_section }}</div>
+                    </div>
+                  </div>
+                  <div class="barcode" style="text-align: center;">
+                    <img src="data:image/png;base64,{{ item.barcode_data }}" alt="Barcode" style="max-width: 120px; height: 30px;">
+                  </div>
                 </div>
-                <div class="student-info" style="flex: 1;">
-                  <div class="demo-text"><strong>{{ student.std_fname }} {{ student.std_lname }}</strong></div>
-                  <div class="demo-text">Roll: {{ student.std_roll }}</div>
-                  <div class="demo-text">{{ student.std_class.class_name }}-{{ student.std_section.std_section }}</div>
-                </div>
-              </div>
-              <div class="barcode" style="text-align: center;">
-                <img src="data:image/png;base64,{{ student.barcode_data }}" alt="Barcode" style="max-width: 120px; height: 30px;">
-              </div>
+                {% endif %}
+              {% endfor %}
             </div>
-          {% endfor %}
+            <div class="card-column">
+              {% for item in students_with_barcodes %}
+                {% if not forloop.counter0|divisibleby:2 %}
+                <div class="id-card" id="card-{{ item.student.id }}">
+                  <div style="text-align: center; margin-bottom: 8px;">
+                    <img src="{% static 'logo_renewed.png' %}" class="institute-logo" alt="Logo">
+                  </div>
+                  <div style="display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px;">
+                    <div style="text-align: center;">
+                      {% if item.student.profile_picture %}
+                        <img src="{{ item.student.profile_picture.url }}" class="student-photo">
+                      {% else %}
+                        <div class="student-photo" style="background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 8px; color: #666;">
+                          {{ item.student.std_fname|first }}{{ item.student.std_lname|first }}
+                        </div>
+                      {% endif %}
+                    </div>
+                    <div class="student-info" style="flex: 1;">
+                      <div class="demo-text"><strong>{{ item.student.std_fname }} {{ item.student.std_lname }}</strong></div>
+                      <div class="demo-text">Roll: {{ item.student.std_roll }}</div>
+                      <div class="demo-text">{{ item.student.std_class.class_name }}-{{ item.student.std_section.std_section }}</div>
+                    </div>
+                  </div>
+                  <div class="barcode" style="text-align: center;">
+                    <img src="data:image/png;base64,{{ item.barcode_data }}" alt="Barcode" style="max-width: 120px; height: 30px;">
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
         {% endif %}
       </div>
     </div>

@@ -145,10 +145,20 @@
             {% endfor %}
           {% endif %}
 
-          <!-- WhatsApp Setup -->
-          <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle"></i> WhatsApp Setup</h5>
-            <p>Before sending messages, you need to connect WhatsApp. <a href="/whatsapp/qr/" target="_blank" class="btn btn-sm btn-primary">Open QR Code Page</a></p>
+          <!-- WhatsApp Status -->
+          <div id="whatsapp-status" class="whatsapp-status status-disconnected">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5><i class="fas fa-circle" id="status-icon"></i> <span id="status-text">Checking WhatsApp Status...</span></h5>
+                <p id="status-message">Connecting to WhatsApp service...</p>
+              </div>
+              <div>
+                <a href="/whatsapp/qr/" target="_blank" class="btn btn-sm btn-primary" id="qr-btn">Open QR Code</a>
+                <button class="btn btn-sm btn-secondary" onclick="checkWhatsAppStatus()" id="refresh-btn">
+                  <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Message Sending Section -->
@@ -226,14 +236,7 @@ Brightway Foundation School And Academy</textarea>
                   </small>
                 </div>
 
-                <!-- Browser Selection -->
-                <div class="mb-4">
-                  <label for="browser_select" class="form-label">Browser for Automation</label>
-                  <select id="browser_select" class="form-control">
-                    <option value="chrome">Google Chrome</option>
-                  </select>
-                  <small class="text-muted">Choose which browser to use for automation</small>
-                </div>
+
 
                 <div class="d-flex gap-2">
                   <button id="automate-messages" class="btn btn-primary" disabled>
@@ -246,7 +249,7 @@ Brightway Foundation School And Academy</textarea>
                     <i class="fas fa-cog"></i>                Sent Notifications </a>
                 </div>
                 <small class="text-muted mt-2 d-block">
-                  <i class="fas fa-info-circle"></i> <strong>Automation:</strong> Opens browser, scan QR code if needed, then sends messages automatically.
+                  <i class="fas fa-info-circle"></i> <strong>Automation:</strong> Uses WhatsApp Web API via Node.js service for direct message sending.
                 </small>
               </div>
 
@@ -326,6 +329,70 @@ Brightway Foundation School And Academy</textarea>
     let selectedStudents = [];
     let pendingMessages = [];
     let sentMessages = [];
+    let statusCheckInterval;
+
+    // WhatsApp Status Checking
+    function checkWhatsAppStatus() {
+      fetch('/whatsapp/status/')
+        .then(response => response.json())
+        .then(data => {
+          updateWhatsAppStatus(data);
+        })
+        .catch(error => {
+          console.error('Status check error:', error);
+          updateWhatsAppStatus({connected: false, error: 'Service unavailable'});
+        });
+    }
+
+    function updateWhatsAppStatus(status) {
+      const statusDiv = document.getElementById('whatsapp-status');
+      const statusIcon = document.getElementById('status-icon');
+      const statusText = document.getElementById('status-text');
+      const statusMessage = document.getElementById('status-message');
+      const qrBtn = document.getElementById('qr-btn');
+      const automateBtn = document.getElementById('automate-messages');
+
+      if (status.connected) {
+        statusDiv.className = 'whatsapp-status status-connected';
+        statusIcon.className = 'fas fa-circle text-success';
+        statusText.textContent = 'WhatsApp Connected';
+        statusMessage.textContent = 'Ready to send messages!';
+        qrBtn.style.display = 'none';
+        if (selectedStudents.length > 0) {
+          automateBtn.disabled = false;
+        }
+      } else {
+        statusDiv.className = 'whatsapp-status status-disconnected';
+        statusIcon.className = 'fas fa-circle text-danger';
+        statusText.textContent = 'WhatsApp Disconnected';
+        statusMessage.textContent = status.error || 'Please scan QR code to connect WhatsApp';
+        qrBtn.style.display = 'inline-block';
+        automateBtn.disabled = true;
+      }
+    }
+
+    // Start status monitoring
+    function startStatusMonitoring() {
+      checkWhatsAppStatus();
+      statusCheckInterval = setInterval(checkWhatsAppStatus, 5000); // Check every 5 seconds
+    }
+
+    // Stop status monitoring
+    function stopStatusMonitoring() {
+      if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+      }
+    }
+
+    // Start monitoring when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+      startStatusMonitoring();
+    });
+
+    // Stop monitoring when page unloads
+    window.addEventListener('beforeunload', function() {
+      stopStatusMonitoring();
+    });
 
     // Don't auto-dismiss alerts - let user read them
 
@@ -613,7 +680,7 @@ Brightway Foundation School And Academy`;
         .replace('{date}', document.getElementById('attendance_date').value)
         .replace('{time}', new Date().toLocaleTimeString());
       
-      logContainer.innerHTML = '<p>Starting full automation with Selenium...</p>';
+      logContainer.innerHTML = '<p>Starting WhatsApp automation...</p>';
       
       // Send data to Django backend for Node.js automation
       fetch('/automate_whatsapp/', {
@@ -625,16 +692,16 @@ Brightway Foundation School And Academy`;
         body: JSON.stringify({
           students: selectedStudents,
           message: message,
-          browser: document.getElementById('browser_select').value
+          service: 'baileys'
         })
       })
       .then(response => response.json())
       .then(data => {
         if (data.success) {
-          logContainer.innerHTML += '<p><i class="fas fa-check text-success"></i> Selenium automation started successfully!</p>';
-          logContainer.innerHTML += '<p><i class="fas fa-info-circle text-info"></i> Chrome browser will open. Please scan QR code if not logged in.</p>';
-          logContainer.innerHTML += '<p><i class="fas fa-robot text-primary"></i> Messages will be sent automatically using Selenium...</p>';
-          logContainer.innerHTML += '<p><i class="fas fa-clock text-warning"></i> Waiting for backend to send messages...</p>';
+          logContainer.innerHTML += '<p><i class="fas fa-check text-success"></i> WhatsApp automation started successfully!</p>';
+          logContainer.innerHTML += '<p><i class="fas fa-info-circle text-info"></i> Using Node.js WhatsApp service for message delivery.</p>';
+          logContainer.innerHTML += '<p><i class="fas fa-robot text-primary"></i> Messages will be sent automatically via WhatsApp Web API...</p>';
+          logContainer.innerHTML += '<p><i class="fas fa-clock text-warning"></i> Sending messages...</p>';
           
           // Poll for message status updates from backend
           const pollInterval = setInterval(() => {

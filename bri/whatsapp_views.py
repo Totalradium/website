@@ -101,7 +101,7 @@ def get_whatsapp_qr(request):
         result = whatsapp.get_qr_code()
         return JsonResponse(result)
     except Exception as e:
-        return JsonResponse({"error": "WhatsApp service not available on Render", "details": "Node.js service required"})
+        return JsonResponse({"status": "error", "error": str(e), "message": "WhatsApp service connection failed"})
 
 def get_message_status(request):
     return JsonResponse({

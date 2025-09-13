@@ -1422,15 +1422,18 @@ def delete_disable_students(request):
 
     filters = {
         'class': request.GET.get('class', ''),
-        'section': request.GET.get('section', '')
+        'section': request.GET.get('section', ''),
+        'roll': request.GET.get('roll', '')
     }
 
     # Filter students based on GET
-    students = Student.objects.all()
+    students = Student.objects.all().order_by('std_roll')
     if filters['class']:
         students = students.filter(std_class__class_name__icontains=filters['class'])
     if filters['section'].isdigit():
         students = students.filter(std_section__id=int(filters['section']))
+    if filters['roll']:
+        students = students.filter(std_roll__icontains=filters['roll'])
 
     if request.method == "POST":
         selected_ids = request.POST.getlist('selected_students')
@@ -2032,6 +2035,68 @@ def delete_fee(request, fee_id):
     return redirect('fee_management')
 
 @admin_required
+def barcode_attendance(request):
+    if request.method == 'GET':
+        return render(request, 'barcode_attendance.html')
+    
+    elif request.method == 'POST':
+        import json
+        data = json.loads(request.body)
+        barcode = data.get('barcode')
+        
+        try:
+            # Find student by roll number
+            student = Student.objects.get(std_roll=barcode)
+            
+            from django.utils import timezone
+            import pytz
+            
+            pakistan_tz = pytz.timezone('Asia/Karachi')
+            pakistan_time = timezone.now().astimezone(pakistan_tz)
+            today = pakistan_time.date()
+            
+            # Check if attendance already exists for today
+            attendance = Attendance.objects.filter(student=student, date=today).first()
+            
+            if attendance:
+                # Toggle attendance status
+                new_status = 'A' if attendance.status == 'P' else 'P'
+                attendance.status = new_status
+                attendance.time_marked = pakistan_time
+                attendance.save()
+            else:
+                # Create new attendance record as Present
+                Attendance.objects.create(
+                    student=student,
+                    status='P',
+                    date=today,
+                    time_marked=pakistan_time
+                )
+                new_status = 'P'
+            
+            return JsonResponse({
+                'success': True,
+                'student': {
+                    'name': f'{student.std_fname} {student.std_lname}',
+                    'class': student.std_class.class_name,
+                    'section': student.std_section.std_section if student.std_section else 'N/A',
+                    'roll': student.std_roll
+                },
+                'status': 'Present' if new_status == 'P' else 'Absent'
+            })
+            
+        except Student.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': f'Student with roll number {barcode} not found'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'error': f'Error processing attendance: {str(e)}'
+            })
+
+@admin_required
 def barcode_fee_entry(request):
     if request.method == 'GET':
         return render(request, 'barcode_fee_entry.html')
@@ -2177,7 +2242,7 @@ def print_single_voucher(request, student_id):
     total_arrears = sum(fee.amount_due for fee in arrears)
     
     # Generate barcode
-    barcode_value = f"{student.std_roll:04d}"
+    barcode_value = f"{str(student.std_roll).zfill(4)}"
     code128 = barcode.get_barcode_class('code128')
     barcode_instance = code128(barcode_value, writer=ImageWriter())
     buffer = BytesIO()
@@ -2190,6 +2255,49 @@ def print_single_voucher(request, student_id):
         'total_arrears': total_arrears,
         'barcode_data': barcode_data,
         'printed_date': timezone.now().strftime('%Y-%m-%d')
+    })
+
+@admin_required
+def print_student_cards(request):
+    import barcode
+    from barcode.writer import ImageWriter
+    from io import BytesIO
+    import base64
+    
+    classes = Class.objects.all()
+    sections = Section.objects.all()
+    students_with_barcodes = []
+    
+    class_id = request.GET.get('class_id')
+    section_id = request.GET.get('section_id')
+    
+    if class_id and section_id:
+        students = Student.objects.filter(
+            std_class_id=class_id,
+            std_section_id=section_id,
+            is_active=True
+        ).order_by('std_roll')
+        
+        for student in students:
+            # Generate barcode
+            barcode_value = str(student.std_roll).zfill(4)
+            code128 = barcode.get_barcode_class('code128')
+            barcode_instance = code128(barcode_value, writer=ImageWriter())
+            buffer = BytesIO()
+            barcode_instance.write(buffer)
+            barcode_data = base64.b64encode(buffer.getvalue()).decode()
+            
+            students_with_barcodes.append({
+                'student': student,
+                'barcode_data': barcode_data
+            })
+    
+    return render(request, 'print_student_cards.html', {
+        'classes': classes,
+        'sections': sections,
+        'students_with_barcodes': students_with_barcodes,
+        'selected_class_id': class_id,
+        'selected_section_id': section_id
     })
 
 @admin_required
@@ -2215,7 +2323,7 @@ def print_vouchers(request):
             total_arrears = sum(fee.amount_due for fee in arrears)
             
             # Generate barcode for each student
-            barcode_value = f"{student.std_roll:04d}"
+            barcode_value = f"{str(student.std_roll).zfill(4)}"
             code128 = barcode.get_barcode_class('code128')
             barcode_instance = code128(barcode_value, writer=ImageWriter())
             buffer = BytesIO()
