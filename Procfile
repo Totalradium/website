@@ -1,1 +1,1 @@
-web: bash -c "cd whatsapp_service && npm install && node server.js & python manage.py runserver 0.0.0.0:$PORT"
+web: node whatsapp_service/server.js & gunicorn website.wsgi:application --bind 0.0.0.0:$PORT
